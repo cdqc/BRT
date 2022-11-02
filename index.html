@@ -1,0 +1,349 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+  <meta charset=UTF-8>
+  <meta name=viewport content="width=device-width,initial-scale=1">
+  <title>Batch Text Replace</title>
+  <link href="https://unpkg.com/material-components-web@latest/dist/material-components-web.min.css" rel=stylesheet>
+  <!-- <link href="material-components-web.min.css" rel=stylesheet> -->
+  <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel=stylesheet>
+  <link href="style.css" rel="stylesheet">
+  <script src="util.js" defer></script>
+  <script src="https://unpkg.com/material-components-web@latest/dist/material-components-web.min.js" defer></script>
+  <!-- <script src="material-components-web.min.js" defer></script> -->
+  <script src="main.js" defer></script>
+  <script src="load-mathjax.js" async></script>
+</head>
+
+<body class="material-theme">
+  <div id="txte">
+    <label
+      class="mdc-text-field mdc-text-field--outlined mdc-text-field--textarea mdc-text-field--with-internal-counter">
+      <span class="mdc-notched-outline">
+        <span class="mdc-notched-outline__leading"></span>
+        <span class="mdc-notched-outline__notch">
+          <span class="mdc-floating-label" draggable="true" id="txte_notch"><i
+              class="material-icons ia">mode_edit</i>Input</span>
+        </span>
+        <span class="mdc-notched-outline__trailing"></span>
+      </span>
+      <span class="mdc-text-field__resizer">
+        <textarea data-js-id="textarea" class="mdc-text-field__input" rows=10 cols=50 maxlength=10000000
+          spellcheck="false"></textarea>
+        <span class="mdc-text-field-character-counter"></span>
+      </span>
+    </label>
+    <div id="txtd" hidden></div>
+  </div>
+  <p id="mjx" hidden></p>
+
+  <div data-js-id="ctrl_font_size" class="mdc-slider mdc-slider--discrete" init when-menu-click="close">
+    <input class="mdc-slider__input" type="range" min=0.2 max=3.5 step=0.1 value=1 name="font-size">
+    <div class="mdc-slider__track">
+      <div class="mdc-slider__track--inactive"></div>
+      <div class="mdc-slider__track--active">
+        <div class="mdc-slider__track--active_fill"></div>
+      </div>
+    </div>
+    <div class="mdc-slider__thumb">
+      <div class="mdc-slider__value-indicator-container" aria-hidden="true">
+        <div class="mdc-slider__value-indicator">
+          <span class="mdc-slider__value-indicator-text"></span>
+        </div>
+      </div>
+      <div class="mdc-slider__thumb-knob"></div>
+    </div>
+  </div>
+
+
+  <flex id="btns">
+    <flex-sub id="btns_edit">
+      <button id="btn_rplc" class="mdc-button mdc-button--raised mdc-button--leading">
+        <span class="mdc-button__ripple"></span>
+        <i class="material-icons mdc-button__icon">polymer</i>
+        <span class="mdc-button__label">Replace</span>
+      </button>
+      <button id="btn_rrplc" class="mdc-button mdc-button--raised mdc-button--leading">
+        <span class="mdc-button__ripple"></span>
+        <i class="material-icons mdc-button__icon">auto_mode</i>
+        <span class="mdc-button__label">Replace Iteratively</span>
+      </button>
+      <button id="btn_diff" class="mdc-button mdc-button--raised mdc-button--leading">
+        <span class="mdc-button__ripple"></span>
+        <i class="material-icons mdc-button__icon">compare</i>
+        <span class="mdc-button__label">View Diff</span>
+      </button>
+      <button id="btn_undo" class="mdc-button mdc-button--raised mdc-button--leading" disabled>
+        <span class="mdc-button__ripple"></span>
+        <i class="material-icons mdc-button__icon">undo</i>
+        <span class="mdc-button__label">Undo</span>
+      </button>
+      <button id="btn_cut" class="mdc-button mdc-button--raised mdc-button--leading">
+        <span class="mdc-button__ripple"></span>
+        <i class="material-icons mdc-button__icon">content_cut</i>
+        <span class="mdc-button__label">Cut</span>
+      </button>
+
+      <button id="btn_cfg" class="mdc-button mdc-button--raised mdc-button--leading">
+        <span class="mdc-button__ripple"></span>
+        <i class="material-icons mdc-button__icon">settings</i>
+        <span class="mdc-button__label">Config</span>
+      </button>
+
+      <button id="btn_rem" class="mdc-button mdc-button--raised mdc-button--leading">
+        <span class="mdc-button__ripple"></span>
+        <i class="material-icons mdc-button__icon">assignment_returned</i>
+        <span class="mdc-button__label">Remember Text</span>
+      </button>
+      <button id="btn_rec" class="mdc-button mdc-button--raised mdc-button--leading">
+        <span class="mdc-button__ripple"></span>
+        <i class="material-icons mdc-button__icon">restore</i>
+        <span class="mdc-button__label">Restore Text</span>
+      </button>
+      <button id="btn_recAS" class="mdc-button mdc-button--raised mdc-button--leading">
+        <span class="mdc-button__ripple"></span>
+        <i class="material-icons mdc-button__icon">settings_backup_restore</i>
+        <span class="mdc-button__label">Restore Autosaved</span>
+      </button>
+    </flex-sub>
+
+    <flex-sub>
+      <button id="btn_addRule" class="mdc-button mdc-button--raised mdc-button--leading">
+        <span class="mdc-button__ripple"></span>
+        <i class="material-icons mdc-button__icon">add</i>
+        <span class="mdc-button__label">Add Rule</span>
+      </button>
+      <button id="btn_selBtwn" class="mdc-button mdc-button--raised mdc-button--leading">
+        <span class="mdc-button__ripple"></span>
+        <i class="material-icons mdc-button__icon">swap_calls</i>
+        <span class="mdc-button__label">Select Between</span>
+      </button>
+      <button id="btn_invSel" class="mdc-button mdc-button--raised mdc-button--leading">
+        <span class="mdc-button__ripple"></span>
+        <i class="material-icons mdc-button__icon">transform</i>
+        <span class="mdc-button__label">Invert Selection</span>
+      </button>
+      <button id="btn_toggleAll" class="mdc-button mdc-button--raised mdc-button--leading">
+        <span class="mdc-button__ripple"></span>
+        <i id="boxesStat" class="material-icons mdc-button__icon">check_box</i>
+        <span class="mdc-button__label">Toggle All</span>
+      </button>
+      <button id="btn_toTop" class="mdc-button mdc-button--raised mdc-button--leading">
+        <span class="mdc-button__ripple"></span>
+        <i class="material-icons mdc-button__icon">vertical_align_top</i>
+        <span class="mdc-button__label">To Top</span>
+      </button>
+      <button id="btn_toBtm" class="mdc-button mdc-button--raised mdc-button--leading">
+        <span class="mdc-button__ripple"></span>
+        <i class="material-icons mdc-button__icon">vertical_align_bottom</i>
+        <span class="mdc-button__label">To Bottom</span>
+      </button>
+      <button id="btn_mvSelUp" class="mdc-button mdc-button--raised mdc-button--leading">
+        <span class="mdc-button__ripple"></span>
+        <i class="material-icons mdc-button__icon">arrow_upward</i>
+        <span class="mdc-button__label">Move Up</span>
+      </button>
+      <button id="btn_mvSelDown" class="mdc-button mdc-button--raised mdc-button--leading">
+        <span class="mdc-button__ripple"></span>
+        <i class="material-icons mdc-button__icon">arrow_downward</i>
+        <span class="mdc-button__label">Move Down</span>
+      </button>
+      <button id="btn_rvsOrd" class="mdc-button mdc-button--raised mdc-button--leading">
+        <span class="mdc-button__ripple"></span>
+        <i class="material-icons mdc-button__icon">swap_vert</i>
+        <span class="mdc-button__label">Reverse Order</span>
+      </button>
+      <button id="btn_delRules" class="mdc-button mdc-button--raised mdc-button--leading">
+        <span class="mdc-button__ripple"></span>
+        <i class="material-icons mdc-button__icon">delete</i>
+        <span class="mdc-button__label">Delete Selected</span>
+      </button>
+      <button id="btn_frzSel" class="mdc-button mdc-button--raised mdc-button--leading">
+        <span class="mdc-button__ripple"></span>
+        <i class="material-icons mdc-button__icon">ac_unit</i>
+        <span class="mdc-button__label">Freeze Selected</span>
+      </button>
+      <button id="btn_unfrzSel" class="mdc-button mdc-button--raised mdc-button--leading">
+        <span class="mdc-button__ripple"></span>
+        <i class="material-icons mdc-button__icon">spa</i>
+        <span class="mdc-button__label">Unfreeze Selected</span>
+      </button>
+      <button id="btn_sort" class="mdc-button mdc-button--raised mdc-button--leading">
+        <span class="mdc-button__ripple"></span>
+        <i class="material-icons mdc-button__icon">sort_by_alpha</i>
+        <span class="mdc-button__label">Sort Rules</span>
+      </button>
+    </flex-sub>
+
+    <flex-sub>
+      <button id="btn_dockBox" class="mdc-icon-button material-icons" data-tooltip-id="btn_dockBox_tipDiv"
+        data-state="off">
+        nature
+      </button>
+      <div id="btn_dockBox_tipDiv" class="mdc-tooltip" role="tooltip" aria-hidden="true">
+        <div data-js-id="btn_dockBox_tip" class="mdc-tooltip__surface mdc-tooltip__surface-animation"
+          data-text="Dock Textbox"></div>
+      </div>
+      <button id="btn_DnD" class="mdc-icon-button material-icons" data-tooltip-id="btn_DnD_tipDiv" data-state="off">
+        drag_indicator
+      </button>
+      <div id="btn_DnD_tipDiv" class="mdc-tooltip" role="tooltip" aria-hidden="true">
+        <div data-js-id="btn_DnD_tip" class="mdc-tooltip__surface mdc-tooltip__surface-animation"
+          data-text="List Draggable"></div>
+      </div>
+      <button id="btn_lineWrap" class="mdc-icon-button material-icons" data-tooltip-id="btn_lineWrap_tipDiv"
+        data-state="on">
+        wrap_text
+      </button>
+      <div id="btn_lineWrap_tipDiv" class="mdc-tooltip" role="tooltip" aria-hidden="true">
+        <div data-js-id="btn_lineWrap_tip" class="mdc-tooltip__surface mdc-tooltip__surface-animation"
+          data-text="Line Wrap"></div>
+      </div>
+      <button id="btn_bslEsc" class="mdc-icon-button material-icons" data-tooltip-id="btn_bslEsc_tipDiv"
+        data-state="on">
+        code
+      </button>
+      <div id="btn_bslEsc_tipDiv" class="mdc-tooltip" role="tooltip" aria-hidden="true">
+        <div data-js-id="btn_bslEsc_tip" class="mdc-tooltip__surface mdc-tooltip__surface-animation"
+          data-text="Backslash Escape"></div>
+      </div>
+      <button id="btn_matchSpecified" class="mdc-icon-button material-icons" data-tooltip-id="btn_matchSpecified_tipDiv"
+        data-state="on">
+        blur_on
+      </button>
+      <div id="btn_matchSpecified_tipDiv" class="mdc-tooltip" role="tooltip" aria-hidden="true">
+        <div data-js-id="btn_matchSpecified_tip" class="mdc-tooltip__surface mdc-tooltip__surface-animation"
+          data-text="config.match.filter"></div>
+      </div>
+      <button id="btn_menu" class="mdc-icon-button material-icons">more_horiz</button>
+      <div class="mdc-menu-surface--anchor" data-mdc-id="mdc_menu_div">
+        <div id="content_menu_div" class="mdc-menu mdc-menu-surface">
+          <ul data-js-id="content_menu" class="mdc-list" role="menu" tabindex="-1">
+            <li id="importRules" class="mdc-list-item" role="menuitem">
+              <span class="mdc-list-item__ripple"></span>
+              <span class="mdc-list-item__text">Import rules from textbox</span>
+            </li>
+            <li id="exportRules" class="mdc-list-item" role="menuitem">
+              <span class="mdc-list-item__ripple"></span>
+              <span class="mdc-list-item__text">Export rules to textbox</span>
+            </li>
+            <li id="dlRules" class="mdc-list-item" role="menuitem">
+              <span class="mdc-list-item__ripple"></span>
+              <span class="mdc-list-item__text">Download rules</span>
+            </li>
+            <li id="ctrl_fontSize" class="mdc-list-item" role="menuitem">
+              <span class="mdc-list-item__ripple"></span>
+              <span class="mdc-list-item__text">Adjust font size</span>
+            </li>
+            <li id="ctrl_pShow" class="mdc-list-item" role="menuitem">
+              <span class="mdc-list-item__ripple"></span>
+              <span class="mdc-list-item__text" data-enum="Show Hide"> MathJax render area</span>
+            </li>
+          </ul>
+        </div>
+      </div>
+    </flex-sub>
+  </flex>
+
+  <aside id="snackbar" class="mdc-snackbar">
+    <div class="mdc-snackbar__surface" role="status" aria-relevant="additions">
+      <div class="mdc-snackbar__label" aria-atomic="false"></div>
+      <div hidden class="mdc-snackbar__actions" aria-atomic="true">
+        <button type="button" class="mdc-button mdc-snackbar__action">
+          <div class="mdc-button__ripple"></div>
+          <span class="mdc-button__label">Undo</span>
+        </button>
+      </div>
+    </div>
+  </aside>
+
+
+  <ul id="ruleList" class="mdc-list"></ul>
+
+
+  <div data-js-id="uConfig" class="mdc-dialog mdc-dialog--fullscreen">
+    <div class="mdc-dialog__container">
+      <div class="mdc-dialog__surface" role="dialog" aria-modal="true" aria-labelledby="dialog-title"
+        aria-describedby="dialog-content">
+        <div class="mdc-dialog__header">
+          <h2 class="mdc-dialog__title" id="dialog-title">Configuration</h2>
+          <button class="mdc-icon-button material-icons mdc-dialog__close" data-mdc-dialog-action=" ">close</button>
+        </div>
+        <div id="uCfgContent" class="mdc-dialog__content" contenteditable spellcheck="false"></div>
+        <div class="mdc-dialog__actions">
+          <button id="uCfgDefault" type="button" class="mdc-button mdc-dialog__button">
+            <span class="mdc-button__label">ViewDefault</span>
+          </button>
+          <button id="uCfgSave" type="button" class="mdc-button mdc-button--raised mdc-dialog__button"
+            data-mdc-dialog-action=" ">
+            <div class="mdc-button__ripple"></div>
+            <span class="mdc-button__label">Save</span>
+          </button>
+        </div>
+      </div>
+    </div>
+    <div class="mdc-dialog__scrim"></div>
+  </div>
+
+  <div data-js-id="sortRulesBy" class="mdc-dialog">
+    <div class="mdc-dialog__container">
+      <div class="mdc-dialog__surface" role="alertdialog" aria-modal="true">
+        <ul class="mdc-list">
+          <li class="mdc-list-item" data-mdc-dialog-action="by-find" tabindex="0">
+            <span class="mdc-list-item__text">By column "<code>Find</code>"</span>
+          </li>
+          <li class="mdc-list-item" data-mdc-dialog-action="by-rplc">
+            <span class="mdc-list-item__text">By column "<code>Replace</code>"</span>
+          </li>
+          <li class="mdc-list-item" data-mdc-dialog-action="ext-merge">
+            <span class="mdc-list-item__text">Merge selected</span>
+          </li>
+          <li class="mdc-list-item" data-mdc-dialog-action="ext-rem">
+            <span class="mdc-list-item__text">Remember list order</span>
+          </li>
+          <li class="mdc-list-item" data-mdc-dialog-action="ext-rec">
+            <span class="mdc-list-item__text">Restore list order</span>
+          </li>
+        </ul>
+      </div>
+    </div>
+    <div class="mdc-dialog__scrim"></div>
+  </div>
+</body>
+
+
+
+<template id="mdc-checkbox">
+  <div class="mdc-checkbox">
+    <input type="checkbox" class="mdc-checkbox__native-control" data-indeterminate />
+    <div class="mdc-checkbox__background">
+      <svg class="mdc-checkbox__checkmark" viewBox="0 0 24 24">
+        <path class="mdc-checkbox__checkmark-path" fill="none" d="M1.73,12.91 8.1,19.28 22.79,4.59" />
+      </svg>
+      <div class="mdc-checkbox__mixedmark"></div>
+    </div>
+    <div class="mdc-checkbox__ripple"></div>
+  </div>
+</template>
+<template id="mdc-text-field--filled">
+  <div rule-pair class="flex-inline">
+    <mdc-checkbox class="left"></mdc-checkbox>
+    <!-- NB: Writing it as `<mdc-checkbox/>` will cause Firefox to parse it incorrectly! -->
+    <label class="mdc-text-field mdc-text-field--filled">
+      <span class="mdc-text-field__ripple"></span>
+      <span class="mdc-floating-label" data-match-count><i class="material-icons ia">find_replace</i> Find</span>
+      <input class="mdc-text-field__input" type="text">
+      <span class="mdc-line-ripple"></span>
+    </label>
+    <div role="v-separator"></div>
+    <label class="mdc-text-field mdc-text-field--filled">
+      <span class="mdc-text-field__ripple"></span>
+      <span class="mdc-floating-label">Replace</span>
+      <input class="mdc-text-field__input" type="text">
+      <span class="mdc-line-ripple"></span>
+    </label>
+  </div>
+</template>
+
+</html>
