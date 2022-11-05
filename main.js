@@ -1,3 +1,5 @@
+"use strict"
+
 if (typeof mdc === "undefined") {
   const $l = "mdc-load-failed", lastTime = localStorage.getItem($l), now = Date.now()
   alert(`\`material-components.js\` failed to load${!lastTime || now - lastTime > 5 * 60 * 1000
@@ -103,7 +105,8 @@ disposableMutObs(mjx, { attributeFilter: ["hidden"] })(() => txte.classList.remo
 exportRules._pattern = /^\s*\[\s*\[/
 textarea._checkSuppression = () => textarea._suppressed = exportRules._pattern.test(textarea.value)
 textarea._checkSuppression()
-textarea.__preTest = () => uCfgContent._uSet.LaTeX.autoOptIn && textarea.value.trim() && !textarea.value.includes("$") ? textarea.__value = `$$${textarea.value}$$` : delete textarea.__value
+const isAboutToLaTeX = () => uCfgContent._uSet.LaTeX.autoOptIn && textarea.value.trim() && !textarea.value.includes("$")
+textarea.__preTest = () => isAboutToLaTeX() ? textarea.__value = `$$${textarea.value}$$` : delete textarea.__value
 textarea.addEventListener("input", textarea._checkSuppression)
 textarea.addEventListener("change", function ({ timeStamp }) {
   if (timeStamp < this._timeStamp + 5000) return
@@ -124,8 +127,9 @@ textarea.addEventListener("change", function ({ timeStamp }) {
 
 
 ruleList.exec = fn => each(btn_frzSel._filterNotFrz(getCheckboxes()), fn)
-ruleList.addEventListener("click", ({ target }) => target.matches($checkbox$) && btn_toggleAll._detectBoxesStat())
-ruleList.addEventListener("dblclick", ({ target }) => target.matches($checkbox$) && btn_frzSel.__toggle(target))
+const boxsClicked = new fixedLengthArray(2)
+ruleList.addEventListener("click", ({ target }) => { if (target.matches($checkbox$)) { btn_toggleAll._detectBoxesStat(); boxsClicked.push(target) } })
+ruleList.addEventListener("dblclick", ({ target }) => target.matches($checkbox$) && boxsClicked[0] === boxsClicked[1] && btn_frzSel.__toggle(target))
 
 
 
@@ -143,13 +147,13 @@ btn_diff._close = e => {
   const { wasViewing } = btn_diff._ctrl({ detail: { inst: true } })
   if (e && wasViewing) e.stopImmediatePropagation()
 }
-[btn_rplc, btn_undo, btn_cut, btn_rec, btn_recAS, ...filter(content_menu.children, _ => _.matches("[id$=Rules]"))].forEach(_ => _.addEventListener("click", btn_diff._close))
+[btn_rplc, btn_rrplc, btn_undo, btn_cut, btn_rec, btn_recAS, ...filter(content_menu.children, _ => _.matches("[id$=Rules]"))].forEach(_ => _.addEventListener("click", btn_diff._close))
 
 const $_m = "_mid"
 btn_rplc.addEventListener("click", rplc)
 btn_rrplc.addEventListener("click", lMRFYUNM)
 
-function rplc({ caller, times } = {}) {
+function rplc({ caller, times = 0 } = {}) {
   if (!ruleList.childElementCount) {
     tell("Please add a rule")
     return { abend: -1 }
@@ -282,8 +286,8 @@ function rplc({ caller, times } = {}) {
   return { count }
 }
 function lMRFYUNM/*"let me repeat for you until no match"*/() {
-  textarea._oldVal = textarea.value
-  let times = 0, count, _count = 0
+  textarea._oriVal = textarea.value
+  let times = 0, abend, count, _count = 0
   do {
     ({ abend, count } = rplc({ caller: lMRFYUNM, times }))
     if (abend || !count) break
@@ -291,6 +295,7 @@ function lMRFYUNM/*"let me repeat for you until no match"*/() {
   }
   while (textarea.value.length < textarea._value.length)
   _count && tell(`<b>${_count}</b> places were replaced in <b>${times}</b> rounds`, tell.timeout_mid)
+  if (textarea._oriVal !== textarea.value) textarea._oldVal = textarea._oriVal
 }
 
 btn_diff.addEventListener("click", btn_diff._ctrl = ({ detail: { inst } = {} }) => {
@@ -348,8 +353,8 @@ btn_diff._diffTables_gen = () => {
     _i = 1
     while (cohort.length + (_i -= 2) > 0) mergeExactSubsetStrings([cohort.at(_i - 1), cohort.at(_i)].map(([str]) => str), cohort, _i - 1, i_a)
 
-    leap = lenIncr()
     cohort.forEach(_ => { _[2] = _[2].replace("unchanged", "$&_mid"); _[3] = "processed" })
+    return lenIncr()
   }
 
   function mergeExactSubsetStrings([str1, str2, isReversed], arr, i, i_a, { _isAgain } = {}) {
@@ -404,7 +409,12 @@ btn_undo._disable = function () { this._enable(false) }
 btn_undo._disable()
 btn_cut.addEventListener("click", async () => {
   if (!textarea.value) return textarea.focus()
-  await navigator.clipboard.writeText(textarea.value)
+  let { value: text } = textarea
+  if (isAboutToLaTeX()) {
+    const delimiter = "$".repeat(text.includes("\n") ? 2 : 1)
+    text = `${delimiter}${text.replace(/^\s*|\s*$/g, delimiter.length === 1 ? "" : "\n")}${delimiter}`
+  }
+  await navigator.clipboard.writeText(text)
   textarea.value = ""
 })
 btn_rem.addEventListener("click", () => textarea.value && localStorage.setItem("btn_rem._remed", btn_rem._remed = textarea.value))
@@ -976,14 +986,22 @@ const backedupRules = {
   import: () => importRules.feed(localStorage.getItem(backedupRules.name)),
   export: () => localStorage.setItem(backedupRules.name, exportRules._())
 }
-backedupRules.import()
+const bc = new BroadcastChannel("BTR")
+bc.addEventListener("message", ({ data }) => {
+  switch (data) {
+    case 0: backedupRules.export(); bc.postMessage(1); bc.close(); break
+    case 1: bc._replyReceived = true; backedupRules.import()
+  }
+})
+bc.postMessage(0)
+setTimeout(() => !bc._replyReceived && backedupRules.import())
 addEventListener("beforeunload", backedupRules.export);
 
 
 // -----------------------------------------------------------------------------
 
 (window.MathJaxStartup = () => window.MathJax?.startup?.__domReady
-  ? (MathJax.startup.__domReady(), uCfgContent._updXM(), textarea.update() === "retry" && textarea.update(), delete MathJaxStartup, setTimeout(initLayout))
+  ? (MathJax.startup.__domReady(), uCfgContent._updXM(), textarea.update() === "retry" && textarea.update(), delete window.MathJaxStartup, setTimeout(initLayout))
   : setTimeout(MathJaxStartup, 250)
 )()
 function initLayout() { if (body.classList.contains($jux) && mjx.hidden) txte.classList.add(txte._className_init = "init-full-land") }

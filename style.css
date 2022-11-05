@@ -115,7 +115,7 @@ textarea,
   font-family: var(--font-family);
   caret-color: aliceblue;
   font-size: calc(1.25 * var(--font-size, 1rem));
-  line-height: calc(1.5 * var(--font-size, 1rem));
+  line-height: calc(1.69 * var(--font-size, 1rem));
   /* Special adaptation to full-width characters: */
   letter-spacing: calc(1ch / 9);
   z-index: 1;

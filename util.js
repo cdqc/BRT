@@ -79,7 +79,7 @@ function fnOrStringify(fn) { const fnS = tryEval(fn); return typeof fnS === "fun
 function evalToStr(str) { return eval(`"${str}"`) }
 function objPathToLastProp(obj, prop) { return prop.includes(".") ? [prop.replace(/\.[^.]+$/, "").split(".").reduce((obj, key) => obj[key], obj), prop.match(/[^.]+$/)[0]] : [obj, prop] }
 
-function downloadText(filename, text) { Object.assign(document.createElement("a"), { href: `data:text/plain;charset=utf-8,${encodeURIComponent(text)}`, download: filename }).click() }
+function downloadText(filename, text) { Object.assign(document.createElement("a"), { href: `data:text;charset=utf-8,${encodeURIComponent(text)}`, download: filename }).click() }
 
 
 function swapElems(a, b) {
@@ -135,4 +135,24 @@ function delegate(obj, key, callback) {
       return true
     }
   })
+}
+
+
+class fixedLengthArray extends Array {
+  constructor(fixedLength) {
+    super()
+    this._fixedLength = fixedLength
+
+    return new Proxy(this, {
+      get: function (target, prop) {
+        return typeof target[prop] === "function" ? fn.bind(target, target, prop) : Reflect.get(...arguments)
+      }
+    })
+
+    function fn(target, prop, ...args) {
+      const result = target[prop](...args)
+      if (target.length > target._fixedLength) target.splice(0, Infinity, ...target.splice(-target._fixedLength))
+      return result
+    }
+  }
 }
