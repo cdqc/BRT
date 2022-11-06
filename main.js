@@ -355,9 +355,9 @@ btn_diff._diffTables_gen = () => {
     function recurFindPrecSeg(_i) {
       _i = findPrecSeg(arr, _i)
       if (!~_i) return
-      const precSeg = arr[_i], lastBec = cohort.at(-1)[0], i_subStrOfPrecSeg = precSeg[0].indexOf(lastBec)
-      if (!~i_subStrOfPrecSeg) return recurFindPrecSeg(_i)
-      const splicedStrs = [[0, i_subStrOfPrecSeg], [i_subStrOfPrecSeg + lastBec.length]].map(idxs => precSeg[0].substring(...idxs))
+      const precSeg = arr[_i], lastBec = cohort.at(-1)[0], i_substrOfPrecSeg = precSeg[0].indexOf(lastBec)
+      if (!~i_substrOfPrecSeg) return recurFindPrecSeg(_i)
+      const splicedStrs = [[0, i_substrOfPrecSeg], [i_substrOfPrecSeg + lastBec.length]].map(idxs => precSeg[0].substring(...idxs))
       // console.log(arr[i], precSeg, `%${lastBec}%`, splicedStrs)
       precSeg[0] = splicedStrs[0]
       splicedStrs[1] && arr.splice(i + cohort.length, 0, [splicedStrs[1], ...precSeg.slice(1)])
