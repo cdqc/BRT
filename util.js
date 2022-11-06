@@ -40,7 +40,7 @@ function passLeadingComment/*XXNG*/(str) { return regs.comment_inArrLit.test(str
 
 function $str(str) {
   return JSON.stringify(str, null, 2)
-    .replace(/"@re: (.+)"/g, (_, $1) => `${stripBsl($1)}`)
+    ?.replace(/"@re: (.+)"/g, (_, $1) => `${stripBsl($1)}`)
     .replace(/(?<=<(raw|f)>": )"(.+)"/g, (_, $1, $2) => `${$1 === "f" ? "``" : "String.raw"}\`${stripBsl($2)}\`${$1 === "f" ? "``" : ""}`.replaceAll(/\\[n"]/g, evalToStr))
 }
 $str._decodeFence = function (str) { return str.replace(/(<f>": )```(.+?)```/gs, (_, $1, $2) => `${$1}"${dblBsl($2).replaceAll(/[\n"]/g, _ => reReprJSONL[_])}"`) }

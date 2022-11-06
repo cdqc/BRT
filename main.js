@@ -153,7 +153,7 @@ const $_m = "_mid"
 btn_rplc.addEventListener("click", rplc)
 btn_rrplc.addEventListener("click", lMRFYUNM)
 
-function rplc({ caller, times = 0 } = {}) {
+function rplc({ caller, times } = {}) {
   if (!ruleList.childElementCount) {
     tell("Please add a rule")
     return { abend: -1 }
@@ -180,14 +180,15 @@ function rplc({ caller, times = 0 } = {}) {
   }
 
   let count, count_incr = 0, count_unaffected = 0
-    , records, rplcArr_flat, rplcResultSegs, rplcResultText = textarea.value
+    , records, rplcArr_flat, rplcResultSegs, rplcResultText = textarea.value, cycles = 1
     , keptArr
+  const addInfo = arr => (arr.push({ priority: (times + 1) * cycles * arr[1] }), arr)
   while (rules.length) {
     textarea._value = rplcResultText
     let segmented = false
     const textArr = (keptArr = btn_matchSpecified._on && isObjReg(uCfgContent._uSet.match.filter))
-      ? [...textarea._value.matchAll(keptArr)].map(v => [v[0], v.index, "unchanged"])
-      : [[textarea._value, 0, "unchanged"]]
+      ? [...textarea._value.matchAll(keptArr)].map(v => addInfo([v[0], v.index, "unchanged"]))
+      : [addInfo([textarea._value, 0, "unchanged"])]
     if (keptArr) keptArr = [...textArr]
     let text, value, index_a/*anchor*/, index_c/*current*/, index_g/*global*/, index_n/*next*/
     const rplcArr = []
@@ -214,7 +215,7 @@ function rplc({ caller, times = 0 } = {}) {
             window[_uVars[$cPre]] = text.substring(index_n, index_c)
             window[_uVars[$cStr]] = textarea._value
             window[_uVars[$cRHC]] += 1
-            if (index_n < index_c) rplcArr[i].push([text.substring(index_n, index_c), index_a + index_n, "unchanged"])
+            if (index_n < index_c) rplcArr[i].push(addInfo([text.substring(index_n, index_c), index_a + index_n, "unchanged"]))
 
             let rplcRes
             if ($find._inclCGIA) {
@@ -231,10 +232,10 @@ function rplc({ caller, times = 0 } = {}) {
             if (rplcRes !== value) ++count; else ++count_unaffected
             ++stampEl._matchCount
 
-            rplcArr[i].push([value, index_g, "replaced"], [rplcRes, index_g, "become"])
+            rplcArr[i].push(addInfo([value, index_g, "replaced"]), addInfo([rplcRes, index_g, "become"]))
             index_n = index_c + value.length
           }
-          if (index_n < text.length) rplcArr[i].push([text.substring(index_n), index_a + index_n, "unchanged"])
+          if (index_n < text.length) rplcArr[i].push(addInfo([text.substring(index_n), index_a + index_n, "unchanged"]))
         }
         textArr.unshift(...rplcArr[i].filter(([, , mark], i, arr) => mark === "unchanged" && delete arr[i]))
         rplcArr[i].splice(0, Infinity, ...rplcArr[i].noHole)
@@ -254,9 +255,9 @@ function rplc({ caller, times = 0 } = {}) {
     if (keptArr) {
       let i_a = 0
       keptArr.forEach(([v, i], _i) => {
-        textArr.splice(_i * 2, 0, [textarea._value.substring(i_a, i), i_a, "unchanged"])
+        textArr.splice(_i * 2, 0, addInfo([textarea._value.substring(i_a, i), i_a, "unchanged"]))
         i_a = i + v.length
-        if (_i === keptArr.length - 1) textArr.push([textarea._value.substring(i_a), i_a, "unchanged"])
+        if (_i === keptArr.length - 1) textArr.push(addInfo([textarea._value.substring(i_a), i_a, "unchanged"]))
       })
     }
 
@@ -272,6 +273,7 @@ function rplc({ caller, times = 0 } = {}) {
     // [^note:b-u]: Adaptation for the special case of "matching zero-width strings"
     rplcResultText = rplcResultSegs.map(([segStr]) => segStr).join("")
     // console.log($str(records))
+    ++cycles
   }
 
   if (textarea.value === rplcResultText) tell(`${count === undefined ? "No matches" : `${count ? `<b>${count}</b> (places⋅times)` : `<b>${count_unaffected}</b> occurrences`}`} found${count === undefined ? keptArr ? `.<br><span class=sml>(Probably because \`${btn_matchSpecified.tip.dataset.text}\` is turned on)</span>` : "" : ".<br><span class=sml>(Replaced but no change happened)</span>"}`)
@@ -315,45 +317,60 @@ btn_diff._alloc = () => {
   txtd.innerHTML = btn_diff._diffTables_cat
 }
 const diff_keysOrd = Object.fromEntries(["replaced_mid", "become_mid", "replaced", "become"].map((v, i) => [v, i]))
-const placeholder = { anArrWithStr: [""] }
+const placeholder = { anArrWithStr: [""], obj: {} }
 btn_diff._diffTables_gen = () => {
   if (!btn_diff._diffTables_src) return
   if (btn_diff._diffTables) return btn_diff._diffTables
-  btn_diff._diffTables = Object.values(btn_diff._diffTables_src).flat().sort(([, i1, mk1], [, i2, mk2]) => i1 - i2 !== 0 ? i1 - i2 : mk1 === "unchanged"/*[^note:b-u]*/ || diff_keysOrd[mk1] - diff_keysOrd[mk2])
+  btn_diff._diffTables = Object.values(btn_diff._diffTables_src).flat().sort(([, i1, mk1, { priority: pr1 }], [, i2, mk2, { priority: pr2 }]) => pr1 !== pr2 ? pr1 - pr2 : i1 !== i2 ? i1 - i2 : mk1 === "unchanged"/*[^note:b-u]*/ || diff_keysOrd[mk1] - diff_keysOrd[mk2])
   // console.log($str(btn_diff._diffTables))
   const arr = btn_diff._diffTables
   let __i__debug
   for (let i = 0, leap; i < arr.length; __i__debug = i += leap || 1) {
     leap = 0
-    let [, i_a, mk/*"mark"*/, hasJud] = arr[i]
+    let [, i_a, mk/*"mark"*/, , hasJud] = arr[i]
     if (hasJud) continue
     if (mk === `replaced${$_m}`) { leap = mergeExactSubsetStrings_verForMids(i, i_a); continue }
     if (mk === "replaced") mergeExactSubsetStrings([arr[i], arr[i + 1]].map(([str]) => str), arr, i, i_a)
   }
 
 
+  function findPrecSeg(arr, i) {
+    let mk, did
+    while (--i >= 0) {
+      [, , mk, , did] = arr[i]
+      if (mk === "unchanged") if (did) break; else return i
+    }
+    return -1
+  }
   function mergeExactSubsetStrings_verForMids(i, i_a) {
-    const prevSeg = arr[i - 1], lenWas = arr.length, lenIncr = () => arr.length - lenWas
-
-    let _before, _after;
-    [[_before], [_after]] = [-1, 1].map(_i => arr[i + _i])
-    if (_before?.endsWith(_after)) prevSeg[0] = _before.substring(0, _before.lastIndexOf(_after))
+    const lenWas = arr.length, lenIncr = () => arr.length - lenWas
 
     let _i = i, cohort = [arr[_i]]
     while (arr[++_i]?.[1] === i_a) cohort.push(arr[_i])
     cohort = cohort.splice(cohort.length / 2).flatMap((v, i) => [cohort[i], v]).noNull;
     [[0, "replaced"], [-1, "become"]].forEach(([i, mk]) => cohort.at(i)[2].startsWith(mk) && (cohort.at(i)._endpoint = i))
 
-    if (i >= 1) {
-      const splicedStrs = [[0, i_a], [i_a + cohort.at(-1)[0].length]].map(idxs => prevSeg[0].substring(...idxs))
-      prevSeg[0] = splicedStrs[0]
-      splicedStrs[1] && arr.splice(i + cohort.length, 0, [splicedStrs[1], ...prevSeg.slice(1)])
-      prevSeg._apart = arr[i + cohort.length] || placeholder.anArrWithStr
+    recurFindPrecSeg(i)
+
+    function recurFindPrecSeg(_i) {
+      _i = findPrecSeg(arr, _i)
+      if (!~_i) return
+      const precSeg = arr[_i], lastBec = cohort.at(-1)[0], i_subStrOfPrecSeg = precSeg[0].indexOf(lastBec)
+      if (!~i_subStrOfPrecSeg) return recurFindPrecSeg(_i)
+      const splicedStrs = [[0, i_subStrOfPrecSeg], [i_subStrOfPrecSeg + lastBec.length]].map(idxs => precSeg[0].substring(...idxs))
+      // console.log(arr[i], precSeg, `%${lastBec}%`, splicedStrs)
+      precSeg[0] = splicedStrs[0]
+      splicedStrs[1] && arr.splice(i + cohort.length, 0, [splicedStrs[1], ...precSeg.slice(1)])
+      precSeg._apart = arr[i + cohort.length] || placeholder.anArrWithStr
+      precSeg.push("processed")
     }
+
+    arr.splice(i, cohort.length)
     _i = 1
     while (cohort.length + (_i -= 2) > 0) mergeExactSubsetStrings([cohort.at(_i - 1), cohort.at(_i)].map(([str]) => str), cohort, _i - 1, i_a)
+    arr.splice(i, 0, ...cohort)
 
-    cohort.forEach(_ => { _[2] = _[2].replace("unchanged", "$&_mid"); _[3] = "processed" })
+    cohort.forEach(_ => { _[2] = _[2].replace("unchanged", "$&_mid"); _[4] = "processed" })
     return lenIncr()
   }
 
@@ -372,10 +389,10 @@ btn_diff._diffTables_gen = () => {
     }
     const jud = { "isAdded": "become", "isDeleted": "replaced" }[isReversed ? "isDeleted" : "isAdded"]
     const index = str2.indexOf(str1)
-    arr[i].splice(0, Infinity, str1, i_a, "unchanged")
-    arr[i + 1].splice(0, Infinity, str2.substring(index + str1.length), i_a, jud, jud)
+    arr[i].splice(0, Infinity, str1, i_a, "unchanged", placeholder.obj)
+    arr[i + 1].splice(0, Infinity, str2.substring(index + str1.length), i_a, jud, placeholder.obj, jud)
     // if (__i__debug === 3 && _isAgain) { console.log($str(arr)); debugger }
-    index > 0 && arr.splice(i, 0, [str2.substring(0, index), i_a, jud])
+    index > 0 && arr.splice(i, 0, [str2.substring(0, index), i_a, jud, placeholder.obj, jud])
   }
   function mergeExactSubsetStringsSpliced([str1, str2], arr, i, i_a) {
     // console.log(i, str1, str2)
