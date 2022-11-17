@@ -34,16 +34,11 @@ body.side-by-side {
   justify-content: center;
 }
 
-body.side-by-side>#txte>label,
-body.side-by-side>#txtd,
-body.side-by-side>#mjx {
-  /* Not `flex-basis`: */
-  width: 50vw;
-}
-
-body.side-by-side>#txte>label,
+body.side-by-side>#txte:not(.unfettered)>label,
 body.side-by-side>#mjx {
   height: calc(100vh - 5px);
+  width: 50vw;
+  /*  ^ not `flex-basis` */
 }
 
 body.side-by-side>#txte {
@@ -122,14 +117,14 @@ textarea,
 }
 
 textarea.nowrap,
-#txtd.nowrap>[data],
+#txtd.nowrap [mk],
 .mdc-text-field__input.nowrap {
   white-space: pre;
   overflow-wrap: normal;
   overflow-x: scroll;
 }
 
-#txtd:not(.nowrap)>[data] {
+#txtd:not(.nowrap) [mk] {
   word-break: break-all;
 }
 
@@ -161,7 +156,8 @@ textarea.nowrap,
   --opacity-mid: calc(var(--opacity) + var(--opacity-p));
   --color-rep: 233, 33, 33;
   --color-bec: 33, 133, 133;
-  --color-mix: 133, 83, 83;
+  --color-mix: 133, 66, 66;
+  --color-mix-bec: 84, 94, 94;
   border: var(--bw) #FFD54F dashed;
   box-sizing: border-box;
   position: absolute;
@@ -186,31 +182,52 @@ textarea.nowrap,
   white-space: pre;
 }
 
-#txtd>[data^=replaced] {
+#txtd [mk^=replaced] {
   background-color: rgba(var(--color-rep), var(--opacity));
 }
 
-#txtd>[data^=become] {
+#txtd [mk^=become] {
   background-color: rgba(var(--color-bec), var(--opacity));
 }
 
-#txtd>[data$=_mid]:not([data^=unchanged]),
-#txtd>[data^=unchanged]+[data^=become] {
-  opacity: var(--opacity);
+#txtd [mk$=_mid]:not([mk^=unchanged]+[mk$=_mid]) {
+  opacity: calc(1.45 * var(--opacity));
 }
 
-#txtd>[data$="_mid#"] {
+#txtd [mk$="_mid#"] {
   opacity: unset;
 }
 
-#txtd>[data$=unchanged_mid] {
+#txtd [mk$=unchanged_mid] {
   background-color: rgba(var(--color-mix), var(--opacity));
 }
 
-#txtd>[data=sep]+[data],
-#txtd>[data^=unchanged]+[data^=become] {
+#txtd [mk=sep]+[mk] {
   background-color: rgba(var(--color-mix), var(--opacity-mid));
 }
+
+#txtd [mk=sep]+[mk^=become] {
+  background-color: rgba(var(--color-mix-bec), var(--opacity-mid));
+}
+
+#txtd [mk^=unchanged]+[mk^=become] {
+  background-color: rgba(var(--color-bec), var(--opacity));
+}
+
+#txtd>[grp]:hover {
+  background-color: hwb(0 100% 0% / 0.064);
+}
+
+#txtd>[grp]:hover>[mk] {
+  opacity: unset;
+  filter: brightness(1.024);
+}
+
+#txtd>[grp]:has(>[mk^=unchanged]:last-child)+[grp]>[mk^=unchanged]:first-child {
+  background-color: unset;
+  opacity: unset;
+}
+
 
 .mdc-text-field--filled:not(.mdc-text-field--disabled) {
   background-color: var(--md-sys-color-on-secondary);
@@ -351,6 +368,35 @@ body:not(.side-by-side)>#btns {
   padding-right: unset;
 }
 
+
+[rule-pair][draggable=true] {
+  cursor: move;
+}
+
+[rule-pair][draggable=true]:hover {
+  filter: brightness(1.2);
+}
+
+[rule-pair][draggable=true].dragging {
+  opacity: 0.5;
+}
+
+[rule-pair].over {
+  --border-size: 2px;
+  --margin-size: calc(2 * var(--border-size));
+  --border-color: wheat;
+  transition: all 0.25s;
+}
+
+[rule-pair].over[pos-of-dragged=front] {
+  box-shadow: 0 var(--border-size) 0 var(--border-size) var(--border-color);
+  margin-bottom: var(--margin-size);
+}
+
+[rule-pair].over[pos-of-dragged=back] {
+  box-shadow: 0 calc(-1 * var(--border-size)) 0 var(--border-size) var(--border-color);
+  margin-top: var(--margin-size);
+}
 
 [role=v-separator] {
   box-shadow: 0 0 8px -1px rgba(255, 255, 255, 0.8), 0 0 9px 0 rgba(255, 255, 255, 0.86), 0 0 10px 0 rgba(255, 255, 255, 0.88);

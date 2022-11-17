@@ -1,4 +1,4 @@
-function arrPFC(fname, _this, ...args) { return Array.prototype[fname] && Array.prototype[fname].apply(_this, args) }
+function arrPFC(fname, _this, ...args) { return Array.prototype[fname] && Array.prototype[fname].apply(isMap(_this) ? Array.from(_this) : _this, args) }
 function filter() { return arrPFC("filter", ...arguments) }
 function each() { arrPFC("forEach", ...arguments) }
 function map() { return arrPFC("map", ...arguments) }
@@ -8,23 +8,55 @@ function isAll() { return arrPFC("every", ...arguments) }
 
 function noop(_) { return _ }
 function noopThis() { return this }
+function rearrange(arr, from, splLen, to/*after!*/) { arr.splice((from < to ? to - splLen : to) + 1, 0, ...arr.splice(from, splLen)); return arr }
+function permuteContly(arr, pMap = [[1, 3], [2, 4]]) {
+  if (pMap[0][0] > pMap[1][0]) pMap.sort()
+  for (let i = 0; i < pMap.length - 1; ++i) {
+    for (let j = i + 1; j < pMap.length; ++j) {
+      for (let k = 0; k < 2; ++k) {
+        if (pMap[j][k] <= pMap[i][1]) pMap[j][k] -= pMap[i][2] ?? 1
+      }
+    }
+  }
+  pMap.forEach(([from, to, splLen = 1]) => rearrange(arr, from, splLen, to))
+  return arr
+}
+
 Object.defineProperties(Array.prototype, {
   noop: { value: noopThis },
+  rearrange: { value() { return rearrange.apply(this, [this, ...arguments]) } },
   noNull: { get() { return this.filter(_ => typeof _ !== "undefined") } },
-  rmNull: { value() { return this.splice(0, Infinity, ...this.noNull) } },
+  rmNull: { value() { return this.replaceWith(...this.noNull) } },
   noHole: { get() { return this.filter(() => true) } }, // Remove empty slots
-  noFalsy: { get() { return this.filter(Boolean) } }
+  noFalsy: { get() { return this.filter(Boolean) } },
+  replaceWith: { value() { this.splice(0, Infinity, ...arguments); return this } }
 })
+
+let retOfSW2D
+function sortingWeights(arr1, arr2, dim = 2) { sortingWeights._baseDArr[dim].find(i => (retOfSW2D = sortingWeights._baseExpr(arr1, arr2, i)) !== 0); return retOfSW2D }
+sortingWeights._baseExpr = (arr1, arr2, i) => arr1[i] < arr2[i] ? -1 : arr1[i] > arr2[i] ? 1 : 0
+sortingWeights._baseDArr = { 2: [0, 1] }
+
+function takeInnermost(_, idx) { return Array.isArray(_.at(idx)) ? takeInnermost(_.at(idx)) : _ }
+function extraWrap(_, idx) { return _.flatMap(_ => Array.isArray(_.at(idx)) ? _ : [_]) }
+
+
+function addToArrInMap(map, key, ...vals) { vals.forEach(val => map.has(key) ? map.get(key).push(val) : map.set(key, [val])) }
+
 Object.defineProperty(HTMLElement.prototype, "_childrenList", { get() { return Array.prototype.slice.call(this.children) } })
+
 
 
 function isSym(_) { return typeof _ === "symbol" }
 function isNum(_) { return typeof _ === "number" }
 function isObj(_) { return _ && typeof _ === "object" }
+function isMap(_) { return ["Map", "Set"].includes(_[Symbol.toStringTag]) }
 function isStrReg(str, validate = true) { return isObjReg(str) || typeof str === "string" && /^\/.+\/\w*$/.test(str) && (isObjReg(str = tryEval(str)) || !validate && str === Symbol.for("MalformedRegExp")) }
 function isObjReg(obj) { return Object.prototype.toString.call(obj) === "[object RegExp]" && obj }
 const parseInt_withFixedRadix = _ => parseInt(_)
 function allStartWithNum() { return isAll(arguments, parseInt_withFixedRadix) }
+
+
 
 // XXNG: "not generic"
 const regs = {
@@ -51,14 +83,15 @@ RegExp.prototype.toString = function () { return `${this._comment_ || ""}/${this
 function regAddFlagsMod(reg, add) { return RegExp(reg, regAddFlags(reg, add)) }
 function regAddFlags(origFlags, add = "") { if (isObjReg(origFlags)) origFlags = origFlags.flags; return [...new Set([...`${origFlags}${add}`])].join("") }
 Object.assign(RegExp.prototype, {
-  _CGIA /*capturing group in assertions (approximate)*/: RegExp(/(?<!\\) \( (?=\?(?!:)) .+? \(/.source.replaceAll(" ", "")),
+  _CGIA /*capturing group in assertions (approximate)*/: RegExp(/(?<!\\) \( (?=\?(?!:))/.source.replaceAll(" ", "")),
   _inclCGIA() { return this._CGIA.test(this.source) }
 })
 
 
+
 function mergeObjOptIn(toMe, give) { toMe && isObj(give) && Object.entries(give).forEach(([k, v]) => / :[\w:]+$/i.test(k) || !toMe.hasOwnProperty(k) ? toMe[k] = v : isObj(v) && mergeObjOptIn(toMe[k], v)); return toMe }
 function sortKeys(obj) { let v; isObj(obj) && Object.keys(obj).sort(localeCompare).forEach(k => { v = obj[k]; delete obj[k]; obj[k] = v; sortKeys(v) }) }
-function localeCompare(a, b) { return a.localeCompare(b, undefined, { numeric: true/*No need to actively check `allStartWithNum(a, b)` at all*/ }) }
+function localeCompare(a, b) { if (typeof a !== "string") [a, b] = [a, b].map(String); return a.localeCompare(b, undefined, { numeric: true/*No need to actively check `allStartWithNum(a, b)` at all*/ }) }
 function reduceSpacesToTryKeys(obj, lPKN/*"longest possible key name"*/, finalCut = /\$.*/) {
   let _lPKN
   do {
@@ -78,21 +111,28 @@ function tryEval(str) { try { return eval(str) } catch (err) { return err.messag
 function fnOrStringify(fn) { const fnS = tryEval(fn); return typeof fnS === "function" ? fnS : `"${ensureStr(fn) && escQq(fn)}"` }
 function evalToStr(str) { return eval(`"${str}"`) }
 function objPathToLastProp(obj, prop) { return prop.includes(".") ? [prop.replace(/\.[^.]+$/, "").split(".").reduce((obj, key) => obj[key], obj), prop.match(/[^.]+$/)[0]] : [obj, prop] }
+function convertInitFnToReinit(fn) { return new Function("return " + fn.toString().replace(RegExp(/\s*fn\s*=.*(?=\}$)/.source.replace("fn", fn.name), "s"), "\n").replaceAll("_init", "_reinit"))() }
+
 
 function downloadText(filename, text) { Object.assign(document.createElement("a"), { href: `data:text;charset=utf-8,${encodeURIComponent(text)}`, download: filename }).click() }
 
 
-function swapElems(a, b) {
+
+function isFollowedByAnother(node, otherNode) { return node.compareDocumentPosition(otherNode) & Node.DOCUMENT_POSITION_FOLLOWING }
+function moveElem(drag, drop) { drop[isFollowedByAnother(drop, drag) ? "before" : "after"](drag) }
+function swapElems(drag, drop) {
   if (swapElems._tmpDiv?.nodeType !== Node.ELEMENT_NODE) swapElems._tmpDiv = document.createElement("div")
-  a.replaceWith(swapElems._tmpDiv)
-  b.replaceWith(a)
-  swapElems._tmpDiv.replaceWith(b)
+  drag.replaceWith(swapElems._tmpDiv)
+  drop.replaceWith(drag)
+  swapElems._tmpDiv.replaceWith(drop)
 }
+
 
 function prevent(e) { e.preventDefault() }
 const theSel = getSelection()
 
 function isLandscape() { return isLandscape._ = matchMedia("(orientation: landscape)").matches }
+
 
 // -----------------------------------------------------------------------------
 
@@ -151,7 +191,7 @@ class fixedLengthArray extends Array {
 
     function fn(target, prop, ...args) {
       const result = target[prop](...args)
-      if (target.length > target._fixedLength) target.splice(0, Infinity, ...target.splice(-target._fixedLength))
+      if (target.length > target._fixedLength) target.replaceWith(...target.splice(-target._fixedLength))
       return result
     }
   }

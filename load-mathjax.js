@@ -16,6 +16,7 @@ document.head.appendChild(
 ).addEventListener("load", async () => {
   await MathJax.startup.promise
   const regexTex = /(?:\$|\\\(|\\\[|\\begin\{.*?})/
+  MathJax.__configMacros_tokens = /^\s*\\(def|(re)?new(command|environment)|DeclareMathOperator|let)\b/m
   const textareaHandler = () => {
     if (mjx._forciblyHidden) return
     if (typeof textarea.__preTest === "function" && textarea.__preTest() === false) return

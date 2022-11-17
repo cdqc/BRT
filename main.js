@@ -1,14 +1,15 @@
 "use strict"
 
+const $err_mlf = "mdc-load-failed"
 if (typeof mdc === "undefined") {
-  const $l = "mdc-load-failed", lastTime = localStorage.getItem($l), now = Date.now()
+  const lastTime = localStorage.getItem($err_mlf), now = Date.now()
   alert(`\`material-components.js\` failed to load${!lastTime || now - lastTime > 5 * 60 * 1000
     ? ",\n\n but it is very likely that refreshing the page will do."
     : ".\n\nMaybe you can check if the console reports an error \"HTTP/2 503 Service Unavailable\"."
     }`)
-  localStorage.setItem($l, now)
+  localStorage.setItem($err_mlf, now)
   location.reload()
-}
+} else localStorage.removeItem($err_mlf)
 
 const {
   checkbox: { MDCCheckbox },
@@ -73,6 +74,16 @@ Object.defineProperties(uOptJux, {
   "_andL": { get: () => uOptJux.__ && isLandscape() }
 })
 
+function detectJux() { body.classList.toggle($jux, uOptJux()); reinitLayout() }
+txte._className_init = ["init-full-land", "unfettered"]
+txte._className_init._rm = function () { this.classList.remove(...this._className_init ?? this._className_reinit) }.bind(txte)
+txte._className_reinit = ["unfettered"]
+function reinitLayout() {
+  txte.classList[body.classList.contains($jux) && mjx.hidden ? "add" : "remove"](...txte._className_init)
+  reinitLayout = convertInitFnToReinit(reinitLayout)
+  txte._className_init._rm()
+  delete txte._className_init
+}
 const narrowPx = 600
 function resizeWith([{ target } = {}]) {
   if (!target) return
@@ -96,17 +107,15 @@ function resizeWith([{ target } = {}]) {
 }
 const rszObs = new ResizeObserver(resizeWith);
 [textarea, btns].forEach(_ => rszObs.observe(_))
-function detectJux() { body.classList.toggle($jux, uOptJux()) }
 screen.orientation.addEventListener("change", detectJux)
-
-disposableMutObs(mjx, { attributeFilter: ["hidden"] })(() => txte.classList.remove(txte._className_init))
+disposableMutObs(mjx, { attributeFilter: ["hidden"] })(txte._className_init._rm)
 
 
 exportRules._pattern = /^\s*\[\s*\[/
 textarea._checkSuppression = () => textarea._suppressed = exportRules._pattern.test(textarea.value)
 textarea._checkSuppression()
-const isAboutToLaTeX = () => uCfgContent._uSet.LaTeX.autoOptIn && textarea.value.trim() && !textarea.value.includes("$")
-textarea.__preTest = () => isAboutToLaTeX() ? textarea.__value = `$$${textarea.value}$$` : delete textarea.__value
+const impliAdd$$/*implicitly add delimiter*/ = () => uCfgContent._uSet.LaTeX.autoOptIn && textarea.value.trim() && !textarea.value.includes("$")
+textarea.__preTest = () => impliAdd$$() && !MathJax.__configMacros_tokens.test(textarea.value) ? textarea.__value = `$$${textarea.value}$$` : delete textarea.__value
 textarea.addEventListener("input", textarea._checkSuppression)
 textarea.addEventListener("change", function ({ timeStamp }) {
   if (timeStamp < this._timeStamp + 5000) return
@@ -147,13 +156,14 @@ btn_diff._close = e => {
   const { wasViewing } = btn_diff._ctrl({ detail: { inst: true } })
   if (e && wasViewing) e.stopImmediatePropagation()
 }
-[btn_rplc, btn_rrplc, btn_undo, btn_cut, btn_rec, btn_recAS, ...filter(content_menu.children, _ => _.matches("[id$=Rules]"))].forEach(_ => _.addEventListener("click", btn_diff._close))
+btn_diff._irrelevantBtns = [btn_diff, btn_cfg];
+[...filter(btns_edit.children, _ => !btn_diff._irrelevantBtns.includes(_)), ...filter(content_menu.children, _ => _.matches("[id$=Rules]"))].forEach(_ => _.addEventListener("click", btn_diff._close))
 
 const $_m = "_mid"
 btn_rplc.addEventListener("click", rplc)
 btn_rrplc.addEventListener("click", lMRFYUNM)
 
-function rplc({ caller, times } = {}) {
+function rplc({ caller, times = 1 } = {}) {
   if (!ruleList.childElementCount) {
     tell("Please add a rule")
     return { abend: -1 }
@@ -168,7 +178,7 @@ function rplc({ caller, times } = {}) {
   const stampEl$signet = "[data-match-count]"
   rules.forEach(rule => rule[3] = rule[3].parentNode.querySelector(stampEl$signet))
   // console.log(rules)
-  ruleList.querySelectorAll(stampEl$signet).forEach(stampEl => { if (!times) stampEl.dataset.matchCount = ""; delete stampEl._isForCompleteText })
+  ruleList.querySelectorAll(stampEl$signet).forEach(stampEl => { if (times === 1) stampEl.dataset.matchCount = ""; delete stampEl._isForCompleteText })
 
   try {
     const evalV = eval(uCfgContent._uSet.match._precall)
@@ -182,7 +192,7 @@ function rplc({ caller, times } = {}) {
   let count, count_incr = 0, count_unaffected = 0
     , records, rplcArr_flat, rplcResultSegs, rplcResultText = textarea.value, cycles = 1
     , keptArr
-  const addInfo = arr => (arr.push({ priority: (times + 1) * cycles * arr[1] }), arr)
+  const addInfo = arr => (arr[3] = { precedence: [times, cycles] }, arr)
   while (rules.length) {
     textarea._value = rplcResultText
     let segmented = false
@@ -204,7 +214,7 @@ function rplc({ caller, times } = {}) {
         else if (btn_bslEsc._on) $rplc = eval(`"${escQq($rplc)}"`)
         // console.log($find, $rplc)
         rplcArr[i] = []
-        while ([text, index_a] = textArr.shift() || [], text !== undefined) {
+        while ([text, index_a] = textArr.shift() ?? [], text !== undefined) {
           index_n = $find.lastIndex = 0
           const vm = text.matchAll($find)
           while ({ value } = vm.next(), value) {
@@ -238,7 +248,7 @@ function rplc({ caller, times } = {}) {
           if (index_n < text.length) rplcArr[i].push(addInfo([text.substring(index_n), index_a + index_n, "unchanged"]))
         }
         textArr.unshift(...rplcArr[i].filter(([, , mark], i, arr) => mark === "unchanged" && delete arr[i]))
-        rplcArr[i].splice(0, Infinity, ...rplcArr[i].noHole)
+        rplcArr[i].replaceWith(...rplcArr[i].noHole)
 
         stampEl.dataset.matchCount = stampEl._matchCount || ""
       })
@@ -261,9 +271,9 @@ function rplc({ caller, times } = {}) {
       })
     }
 
-    records && ["replaced", "become"].forEach(_ => {
+    records && diff_finalMarkers.forEach(_ => {
       records[_].forEach(record => record[2] += $_m)
-      records[`${_}${$_m}`] = (records[`${_}${$_m}`] || []).concat(records[_])
+      records[`${_}${$_m}`] = (records[`${_}${$_m}`] ?? []).concat(records[_])
     })
     rplcArr_flat = rplcArr.flat()
     records = Object.assign(records || {}, { unchanged: textArr, replaced: [], become: [] /*[^note:u-r-b]*/ })
@@ -279,24 +289,24 @@ function rplc({ caller, times } = {}) {
   if (textarea.value === rplcResultText) tell(`${count === undefined ? "No matches" : `${count ? `<b>${count}</b> (places⋅times)` : `<b>${count_unaffected}</b> occurrences`}`} found${count === undefined ? keptArr ? `.<br><span class=sml>(Probably because \`${btn_matchSpecified.tip.dataset.text}\` is turned on)</span>` : "" : ".<br><span class=sml>(Replaced but no change happened)</span>"}`)
   else {
     tell.timeout_tmp = 2500
-    btn_diff._diffTables_reset(records, times, count)
+    btn_diff._diffTables_put(records, times, count)
     !caller && (textarea._oldVal = textarea.value)
     textarea.value = rplcResultText
     tell(`Replaced <b>${count}</b> places`)
     btn_undo._enable()
   }
+  rplc._times = times
   return { count }
 }
 function lMRFYUNM/*"let me repeat for you until no match"*/() {
   textarea._oriVal = textarea.value
   let times = 0, abend, count, _count = 0
   do {
-    ({ abend, count } = rplc({ caller: lMRFYUNM, times }))
-    if (abend || !count) break
-    ++times; _count += count
+    ({ abend, count } = rplc({ caller: lMRFYUNM, times: ++times }))
+    _count += count ?? (--times, 0)
   }
-  while (textarea.value.length < textarea._value.length)
-  _count && tell(`<b>${_count}</b> places were replaced in <b>${times}</b> rounds`, tell.timeout_mid)
+  while (!abend && count && textarea.value.length < textarea._oriVal.length)
+  _count && tell(`<b>${_count}</b> places replaced in <b>${times}</b> rounds`, tell.timeout_mid)
   if (textarea._oriVal !== textarea.value) textarea._oldVal = textarea._oriVal
 }
 
@@ -312,112 +322,255 @@ btn_diff._alloc = () => {
   if (!btn_diff._diffTables_src) return ""
   if (!btn_diff._diffTables) {
     btn_diff._diffTables_gen()
-    btn_diff._diffTables_cat = btn_diff._diffTables.map(([str, , mark, endpoint]) => `<span data=${isSym(str) ? "sep" : mark}${isNum(endpoint) ? `#${endpoint}` : ""}>${isSym(str) ? "" : str}</span>`).join("")
+    let group = 0, _finalOrder = 0, inArr, lastStr
+    const stringify = (rec, i, arr) => {
+      let ret, nl
+      if (Array.isArray(rec[0])) {
+        nl = undefined, (inArr = arr).i = i
+        ret = `<span grp=${++group}>${rec.map(stringify).join("")}</span>`
+        if (nl) ret = `${nl}${ret}`
+        return ret
+      }
+      const [str, , mark, { finalOrder }] = rec
+      nl = !lastStr?.endsWith("\n") && !str.startsWith("\n") && (
+        finalOrder > _finalOrder + 1
+        || inArr && !i && inArr.i && (finalOrder === inArr[inArr.i - 1].at(-1)[3].finalOrder || [mark, inArr[inArr.i - 1].at(-1)[2]].every(diff_um_reg[0]._test))
+        || i && [arr[i - 1][0], str].some(_ => _.includes("\n"))
+      ) ? "\n" : ""
+      ret = `${nl}<span i=${finalOrder} mk=${mark}>${str}</span>`
+      _finalOrder = finalOrder, lastStr = str
+      return ret
+    }
+    btn_diff._diffTables_cat = btn_diff._diffTables.map(stringify).join("")
   }
   txtd.innerHTML = btn_diff._diffTables_cat
 }
-const diff_keysOrd = Object.fromEntries(["replaced_mid", "become_mid", "replaced", "become"].map((v, i) => [v, i]))
+
+btn_diff._diffTables_put = (records, times, count) => {
+  if (!count) return
+  times === 1
+    ? (btn_diff._diffTables_src = records, delete btn_diff._diffTables)
+    : (btn_diff._diffTables_src.unchanged = records.unchanged, diff_finalMarkers.$rr_bb_.forEach(mk => records.hasOwnProperty(mk) && btn_diff._diffTables_src[mk].push(...records[mk])))
+}
+const diff_finalMarkers = ["replaced", "become"]
+diff_finalMarkers.$rr_bb_ = diff_finalMarkers.flatMap(_ => [_, `${_}${$_m}`])
+diff_finalMarkers.$r_b_rb = diff_finalMarkers.map(_ => `${_}${$_m}`).concat(diff_finalMarkers)
+diff_finalMarkers.reg = RegExp(diff_finalMarkers.join(".*"))
+const diff_keysOrd = Object.fromEntries(diff_finalMarkers.$r_b_rb.map((v, i) => [v, i]))
+const diff_markers = ["unchanged", ...diff_finalMarkers]
+const diff_um_reg = ["*", "+"].map(_ => RegExp(`^(unchanged)(${$_m})${_}`))
+diff_um_reg.forEach(reg => reg._test = reg.test.bind(reg))
+const diff_mk_reg = RegExp(`(${diff_markers.join("|")})(${$_m})*`)
 const placeholder = { anArrWithStr: [""], obj: {} }
+
 btn_diff._diffTables_gen = () => {
   if (!btn_diff._diffTables_src) return
   if (btn_diff._diffTables) return btn_diff._diffTables
-  btn_diff._diffTables = Object.values(btn_diff._diffTables_src).flat().sort(([, i1, mk1, { priority: pr1 }], [, i2, mk2, { priority: pr2 }]) => pr1 !== pr2 ? pr1 - pr2 : i1 !== i2 ? i1 - i2 : mk1 === "unchanged"/*[^note:b-u]*/ || diff_keysOrd[mk1] - diff_keysOrd[mk2])
-  // console.log($str(btn_diff._diffTables))
-  const arr = btn_diff._diffTables
-  let __i__debug
-  for (let i = 0, leap; i < arr.length; __i__debug = i += leap || 1) {
-    leap = 0
-    let [, i_a, mk/*"mark"*/, , hasJud] = arr[i]
-    if (hasJud) continue
-    if (mk === `replaced${$_m}`) { leap = mergeExactSubsetStrings_verForMids(i, i_a); continue }
-    if (mk === "replaced") mergeExactSubsetStrings([arr[i], arr[i + 1]].map(([str]) => str), arr, i, i_a)
+
+  const isMode_rrplc = rplc._times > 1
+  const $_ = new Proxy({}, { get(_target, key) { return `${key}${isMode_rrplc ? $_m : ""}` } })
+  const sortBy = {
+    rrplc: ([, i1, mk1, { precedence: pr1 }], [, i2, mk2, { precedence: pr2 }]) => mk1 === "unchanged" && -1 || sortingWeights(pr1, pr2) || i1 - i2 || diff_keysOrd[mk1] - diff_keysOrd[mk2],
+    rplc: ([, i1, mk1], [, i2, mk2]) => i1 - i2 || mk1 === "unchanged" /*[^note:b-u]*/ || diff_keysOrd[mk1] - diff_keysOrd[mk2],
+    precedence: ([, , , { precedence: pr1 }], [, , , { precedence: pr2 }]) => sortingWeights(pr1, pr2),
+    length: ([str1], [str2]) => str1.length - str2.length,
+    finalOrder: ([[, , , { finalOrder: o1 }]], [[, , , { finalOrder: o2 }]]) => o1 - o2
   }
+  const rc = btn_diff._diffTables = Object.values(btn_diff._diffTables_src).flat().sort(isMode_rrplc ? sortBy.rrplc : sortBy.rplc)
+  let [str, i_a/*"anchor index" in the whole string*/, mk/*"mark"*/, { precedence }] = ["example", 0, "replaced", { precedence: [1, 1] }]
+    , hasJud, __i__debug
+  // console.log(rc); return
+  isMode_rrplc
+    ? glueSegsSimply(presortin()).forEach(mergeStrings)
+    : mergeStrings(rc)
 
 
-  function findPrecSeg(arr, i) {
-    let mk, did
-    while (--i >= 0) {
-      [, , mk, , did] = arr[i]
-      if (mk === "unchanged") if (did) break; else return i
+
+  function mergeStrings(records) {
+    for (let i = 0; i < records.length; /* __i__debug = */ ++i) {
+      [, i_a /*"anchor index" in the whole string*/, mk /*"mark"*/, , hasJud] = records[i]
+      if (hasJud) continue
+      if (mk.startsWith("replaced") && records[i + 1][2].startsWith("become")) mergeExactSubsetStrings([records[i], records[i + 1]].map(([str]) => str), records, i, i_a)
     }
-    return -1
   }
-  function mergeExactSubsetStrings_verForMids(i, i_a) {
-    const lenWas = arr.length, lenIncr = () => arr.length - lenWas
 
-    let _i = i, cohort = [arr[_i]]
-    while (arr[++_i]?.[1] === i_a) cohort.push(arr[_i])
-    cohort = cohort.splice(cohort.length / 2).flatMap((v, i) => [cohort[i], v]).noNull;
-    [[0, "replaced"], [-1, "become"]].forEach(([i, mk]) => cohort.at(i)[2].startsWith(mk) && (cohort.at(i)._endpoint = i))
-
-    recurFindPrecSeg(i)
-
-    function recurFindPrecSeg(_i) {
-      _i = findPrecSeg(arr, _i)
-      if (!~_i) return
-      const precSeg = arr[_i], lastBec = cohort.at(-1)[0], i_substrOfPrecSeg = precSeg[0].indexOf(lastBec)
-      if (!~i_substrOfPrecSeg) return recurFindPrecSeg(_i)
-      const splicedStrs = [[0, i_substrOfPrecSeg], [i_substrOfPrecSeg + lastBec.length]].map(idxs => precSeg[0].substring(...idxs))
-      // console.log(arr[i], precSeg, `%${lastBec}%`, splicedStrs)
-      precSeg[0] = splicedStrs[0]
-      splicedStrs[1] && arr.splice(i + cohort.length, 0, [splicedStrs[1], ...precSeg.slice(1)])
-      precSeg._apart = arr[i + cohort.length] || placeholder.anArrWithStr
-      precSeg.push("processed")
+  function presortin() {
+    let i = rc.findIndex(([, , mk]) => mk.startsWith("replaced"))
+    if (!~i) return
+    const getPreType = record => ["_precursor", "_followers"].find(_ => record.hasOwnProperty(_))
+    const markersMap = new Map
+    addToArrInMap(markersMap, "unchanged", ...rc.slice(0, i))
+    const cluster = new Map, forerunners = new Set
+    let curr
+    --i
+    while (++i < rc.length) {
+      [str, i_a, mk, { precedence }] = curr = rc[i]
+      if (mk.startsWith("unchanged")) {
+        addToArrInMap(markersMap, "unchanged", curr)
+        continue
+      }
+      if (mk.startsWith("become")) {
+        (curr._pairTo = rc[i - 1])
+          ._precursor?._followers.push(curr) ??
+          curr._pairTo._followers.unshift(curr)
+        continue
+      }
+      addToArrInMap(cluster, str, curr)
+      forerunners._size = forerunners.size
+      for (const r of forerunners) {
+        const [_str, _i_a, _mk, { precedence: _precedence }] = r, matchingIndexs = [_i_a, _i_a + _str.length]
+        if (matchingIndexs.includes(i_a) && i_a === _i_a + (sortingWeights(precedence, _precedence) === 0 ? _str.length : 0)) {
+          tranLead(curr, r)
+          updJoinedSegs(r)
+          r._awaitingSuccessor && cluster.get(_str).some(_r => _r._joinedSegs.includes(r._joinedSegs)) && delete r._awaitingSuccessor
+          break
+        }
+        if (r._awaitingSuccessor === str && _str !== str) {
+          tranLead(r, curr)
+          break
+        }
+      }
+      if (!getPreType(curr)) {
+        if (cluster.get(str).length > 1) {
+          const precedent = cluster.get(str).at(-2)._precursor
+          if (precedent) {
+            const precurStr = precedent[0]
+            const curr_precursor = cluster.get(precurStr).find(_ => _ !== precedent && _._followers && precedent._joinedSegs.startsWith(_._joinedSegs))
+            if (curr_precursor) tranLead(curr, curr_precursor)
+            else if (precurStr !== str) curr._awaitingSuccessor = precurStr
+          }
+        }
+        if (!curr._precursor) { curr._followers = []; forerunners.add(curr) }
+      }
+      updJoinedSegs(curr._precursor)
     }
 
-    arr.splice(i, cohort.length)
-    _i = 1
-    while (cohort.length + (_i -= 2) > 0) mergeExactSubsetStrings([cohort.at(_i - 1), cohort.at(_i)].map(([str]) => str), cohort, _i - 1, i_a)
-    arr.splice(i, 0, ...cohort)
+    // console.log(map(forerunners, updJoinedSegs))
+    const unchGroup = markersMap.get("unchanged"), pairsGroups = map(forerunners, regiment)
+    pairsGroups._idxs = map(forerunners, fr => fr._followers.at(-1)[1]).sort(localeCompare)
+    pairsGroups.forEach((records, i) => records.sort(sortBy.precedence).forEach(r => r[1] = pairsGroups._idxs[i]))
+    rc.splice(0, rc.length, ...extraWrap([...unchGroup, ...pairsGroups]))
+    // console.log(pairsGroups, cluster, rc); debugger
+    return { forerunners, unchGroup, pairsGroups }
 
-    cohort.forEach(_ => { _[2] = _[2].replace("unchanged", "$&_mid"); _[4] = "processed" })
-    return lenIncr()
+    function updJoinedSegs(tapArr) { return tapArr?.hasOwnProperty("_followers") ? tapArr._joinedSegs = joinSegs(regiment(tapArr)) : "" }
+    function tranLead(pred, succ) {
+      succ._followers = [...succ._followers, ...regiment(pred)]
+      pred._precursor = succ;
+      ["_awaitingSuccessor", "_followers"].forEach(_ => delete pred[_])
+      forerunners.delete(pred)
+      modTextIndex(succ)
+    }
+    function modTextIndex(tapArr) { tapArr._followers.forEach(arr => { if (arr[1] !== tapArr[1] && sortingWeights(arr[3].precedence, tapArr[3].precedence)) { arr[1] = tapArr[1] } }) }
   }
+  function joinSegs(arr) { return arr.map(([s]) => s).join("") }
+  function regiment(tapArr) { return [tapArr, ...tapArr._followers ?? []] }
+
+  function glueSegsSimply({ forerunners, unchGroup }) {
+    const unch_curr = () => unchGroup[0]
+    const unch_precedence = unch_curr()?.[3].precedence
+    if (!unch_precedence) return
+    const anArr = () => Object.assign([], { _push() { each(arguments, r => regiment(r).forEach(r => r[3].finalOrder = ++finalOrder)); this.push(...arguments) } })
+    unchGroup._col = ["_peers", "_depot", "_trailers"]
+    unchGroup._col.forEach(_ => unchGroup[_] = anArr())
+    function retire(isPeer = true) {
+      forerunners.delete(forerunner)
+      if (!isPeer) return
+      unchGroup._peers._push(...unch_curr()._isEnd ? [unchGroup.shift()] : [], forerunner)
+    }
+    function deposit(record) {
+      if (record._isEnd) return
+      unchGroup._depot._push(record)
+    }
+    function slice() {
+      const [lhs, rhs] = [[, i_a], [i_a + str.length]].map(([start, end]) => matchingStr.substring(start, end))
+      if (!lhs) return
+      if (rhs) {
+        uCurr[0] = rhs
+        uCurr._leftHalf = [lhs, ...uCurr.slice(1, 3), { precedence: uCurr[3].precedence }]
+        uCurr._leftHalf._rightHalf = uCurr
+      }
+      [uCurr._leftHalf ?? uCurr, forerunner].forEach(deposit)
+      if (!rhs) uCurr._isEnd = true
+      return uCurr._leftHalf
+    }
+    let forerunner, matchingStr, betwixt, uCurr, finalOrder = 0
+    for (forerunner of forerunners) {
+      if (!unchGroup.length) {
+        unchGroup._trailers._push(...forerunners)
+        break
+      }
+      if (regiment(forerunner).some(r => !sortingWeights(r[3].precedence, unch_precedence))) {
+        unch_curr()._isEnd = true
+        retire()
+        continue
+      }
+      for (let i = 0, goOn; i < unchGroup.length; goOn = false, ++i) {
+        uCurr = unchGroup[i]
+        matchingStr = uCurr[0]
+        const overlaps = regiment(forerunner).filter(r => r[2].startsWith("become") && !!~(r._overlapIdx = matchingStr.indexOf(r[0]))).sort(sortBy.length)
+        // console.log(matchingStr, forerunner, overlaps); debugger
+        if (overlaps.length) {
+          [str] = betwixt = overlaps.pop(), ({ _overlapIdx: i_a } = betwixt)
+          if (str) {
+            const _leftHalf = slice()
+            if (_leftHalf) { _leftHalf[0] = overlaps.reduceRight((mtStr, clip) => mtStr.replace(clip[0], ""), _leftHalf[0]) }
+            retire(false)
+          }
+          else if (betwixt[1] > uCurr[1]) {
+            i_a += Infinity
+            --i; goOn = true
+          }
+        }
+        else { i_a = -1; retire() }
+        if (goOn || !~i_a || i_a + str.length >= matchingStr.length) deposit(unchGroup.shift())
+        if (!goOn && (!!~i_a || !str)) break
+      }
+    }
+    unchGroup.splice(0).forEach(deposit)
+    unchGroup._cohorts = unchGroup._col.map(_ => unchGroup[_].map(regiment)).flat()
+    unchGroup._finalList = unchGroup._cohorts.sort(sortBy.finalOrder)
+    return rc.replaceWith(...unchGroup._finalList)
+  }
+
 
   function mergeExactSubsetStrings([str1, str2, isReversed], arr, i, i_a, { _isAgain } = {}) {
     if (i < 0) arguments[2] = i = arr.length + i
-    if (str1.length > str2.length) {
-      mergeExactSubsetStrings([str2, str1, "(reversed)"], ...Array.prototype.slice.call(arguments, 1))
-      return
-    }
-    if ([str2, str1].some(isSym)) return
+    if (str1.length > str2.length) return mergeExactSubsetStrings([str2, str1, "(reversed)"], ...Array.prototype.slice.call(arguments, 1))
+    let ret
     if (!str2.includes(str1)) {
-      const res = mergeExactSubsetStringsSpliced(isReversed ? [str2, str1] : [str1, str2], arr, i, i_a)
-      if (arr !== btn_diff._diffTables) return
-      if (!_isAgain) mergeExactSubsetStrings(...res, { _isAgain: true })
-      return
+      ret = mergeExactSubsetStringsSpliced(isReversed ? [str2, str1] : [str1, str2], arr, i, i_a)
+      if (arr !== rc) return theDuo(arr, i)
+      if (!_isAgain) ret = mergeExactSubsetStrings(...ret, { _isAgain: true })
+      return ret
     }
-    const jud = { "isAdded": "become", "isDeleted": "replaced" }[isReversed ? "isDeleted" : "isAdded"]
+    const jud = { "isAdded": $_.become, "isDeleted": $_.replaced }[isReversed ? "isDeleted" : "isAdded"]
     const index = str2.indexOf(str1)
-    arr[i].splice(0, Infinity, str1, i_a, "unchanged", placeholder.obj)
-    arr[i + 1].splice(0, Infinity, str2.substring(index + str1.length), i_a, jud, placeholder.obj, jud)
+    ret = [arr[i], arr[i + 1]]
+    arr[i].replaceWith(str1, i_a, $_.unchanged, arr[i][3])
+    arr[i + 1].replaceWith(str2.substring(index + str1.length), i_a, jud, arr[i][3], jud)
     // if (__i__debug === 3 && _isAgain) { console.log($str(arr)); debugger }
-    index > 0 && arr.splice(i, 0, [str2.substring(0, index), i_a, jud, placeholder.obj, jud])
+    if (index > 0) { arr.splice(i, 0, [str2.substring(0, index), i_a, jud, arr[i][3], jud]); ret.unshift(arr[i]) }
+    return ret
   }
   function mergeExactSubsetStringsSpliced([str1, str2], arr, i, i_a) {
     // console.log(i, str1, str2)
     _do(0, -1)
     _do(-1, 2);
     // console.log($str(arr)); // P.S. From this statement we can surprisingly observe that in Firefox there is a lag in log output for the referenced object
-    [[str1], [str2]] = [arr[i], arr[i + 1]]
+    [[str1], [str2]] = theDuo(arr, i)
     return [[str1, str2], arr, i, i_a]
     function _do(index, mv) {
       let char
       while ((char = str1.at(index)) === str2.at(index) && char) {
-        if (arr[i + mv]?.[2] !== "unchanged") { arr.splice(i + (index < 0 ? mv : 0), 0, ["", i_a, "unchanged"]); index >= 0 && ++i }
+        if (!arr[i + mv]?.[2].startsWith($_.unchanged)) { arr.splice(i + (index < 0 ? mv : 0), 0, ["", i_a, $_.unchanged, arr[i][3]]); index >= 0 && ++i }
         arr[i + mv][0] = [char, arr[i + mv][0]][index < 0 ? "noop" : "reverse"]().join("");
         [i, i + 1].forEach(j => arr[j][0] = arr[j][0].slice(...index < 0 ? [0, -1] : [1]))
         index < 0 ? --index : ++index
       }
     }
   }
-  btn_diff._diffTables.forEach(_ => _.splice(3, Infinity, ...isNum(_._endpoint) ? [_._endpoint] : []))
-}
-btn_diff._diffTables_reset = (records, times, count) => {
-  if (!count) return
-  !times
-    ? (btn_diff._diffTables_src = records, delete btn_diff._diffTables)
-    : ["replaced", "become"].flatMap(_ => [_, `${_}${$_m}`]).forEach(_ => records.hasOwnProperty(_) && btn_diff._diffTables_src[_].push([Symbol.for(" ")].concat(records[_][0].slice(1)), ...records[_]))
+  function theDuo(arr, i) { return [arr[i], arr[i + 1]] }
 }
 
 btn_undo.addEventListener("click", () => textarea._oldVal !== undefined && (textarea.value = textarea._oldVal, btn_undo._disable()))
@@ -427,7 +580,7 @@ btn_undo._disable()
 btn_cut.addEventListener("click", async () => {
   if (!textarea.value) return textarea.focus()
   let { value: text } = textarea
-  if (isAboutToLaTeX()) {
+  if (impliAdd$$()) {
     const delimiter = "$".repeat(text.includes("\n") ? 2 : 1)
     text = `${delimiter}${text.replace(/^\s*|\s*$/g, delimiter.length === 1 ? "" : "\n")}${delimiter}`
   }
@@ -485,9 +638,9 @@ uCfgSave._ = (e, rebuild = true) => {
     // [^note]: [Special Note] Using `innerText` may inexplicably generate an extra blank line that shouldn't exist!
     //          (Example encountered in this project: after creating a `__ <f>` with `__ :demo<f>` as a template and clicking save,
     //           a blank line appears before the fence code identifier of the template)
-    tell._lastId === uCfgSave._err && mdc_snackbar.close()
+    tell._lastId === uCfgSave._errID && mdc_snackbar.close()
   }
-  catch (err) { e.stopPropagation(); tell(err, { isErr: uCfgSave._err = "uCfgSave._err" }) }
+  catch (err) { e.stopPropagation(); tell(err, { errID: uCfgSave._errID = "uCfgSave._errID" }) }
 }
 uCfgSave.__ = uCfgSave._.bind(null, false, false)
 uCfgSave.addEventListener("click", e => { delete uCfgContent._retract; uCfgSave._(e) })
@@ -609,7 +762,7 @@ btn_rvsOrd.addEventListener("click", () => {
   let clnNode, oriNode
   if (!sels.toString()) return
   sels.some(rps => rps.length === 1)
-    ? sels.splice(0, Infinity, ...sels.flat()) && sels.find((rp, i, arr) => (
+    ? sels.replaceWith(...sels.flat()) && sels.find((rp, i, arr) => (
       i === Math.floor(arr.length / 2) || (
         oriNode = arr[arr.length - 1 - i], clnNode = oriNode.cloneNode(),
         oriNode.replaceWith(clnNode), rp.replaceWith(oriNode), clnNode.replaceWith(rp),
@@ -649,12 +802,12 @@ sortRulesBy_J.listen("MDCDialog:closed", ({ detail: { action } }) => {
   switch (action.replace("ext-", "")) {
     case "merge": mergeRules(); break
     case "rem": ruleList._children_bakList = ruleList._childrenList; break
-    case "rec": ruleList.append(...ruleList._children_bakList || []); break
+    case "rec": ruleList.append(...ruleList._children_bakList ?? []); break
   }
 })
 function mergeRules() {
   const sow = new Map
-  getCheckboxes.checked("tree").forEach(([rootEl, findEl, rplcEl, boxEl]) => sow.set(rplcEl.value, (sow.get(rplcEl.value) || []).concat([[rootEl, findEl.value, boxEl]])))
+  getCheckboxes.checked("tree").forEach(([rootEl, findEl, rplcEl, boxEl]) => sow.set(rplcEl.value, (sow.get(rplcEl.value) ?? []).concat([[rootEl, findEl.value, boxEl]])))
   const count = { groups: 0, entries: 0 }
   let changeless = 0
   sow.forEach((rfEls, $rplc) => {
@@ -711,17 +864,23 @@ btn_DnD._toggle = () => {
     if (!btn_DnD._added) {
       // P.S. Although the browser itself already knows not to re-add the identity event handler
       item.addEventListener("dragstart", dragstartHandler)
-      item.addEventListener("dragover", dragoverHandler)
+      item.addEventListener("dragover", dragoverHandler._for_ruleList)
       item.addEventListener("drop", dropHandler)
+      item.addEventListener("dragenter", dragEnterHandler)
+      item.addEventListener("dragleave", dragLeaveHandler)
+      item.addEventListener("dragend", dragEndHandler)
     }
   })
   btn_DnD._added = true
 }
 
-function dragstartHandler(e) { if (isAnyTextSelected(e.target)) return e.preventDefault(); dragstartHandler._target = e.target.closest($rulePair) }
+function dragstartHandler(e) { if (isAnyTextSelected(e.target)) return e.preventDefault(); dragstartHandler._target = e.target.closest($rulePair), dragstartHandler._target.classList.add("dragging") }
 function dragoverHandler(e) { e.preventDefault() }
-function dropHandler({ target }) { swapElems(target.closest($rulePair), dragstartHandler._target) }
+function dropHandler({ target }) { moveElem(dragstartHandler._target, target.closest($rulePair)) }
 function isAnyTextSelected(box) { return box.matches($input$) && box.selectionStart !== box.selectionEnd }
+function dragEnterHandler() { ruleList._hovering = this; this.classList.add("over"); this.setAttribute("pos-of-dragged", isFollowedByAnother(dragstartHandler._target, this) ? "front" : "back") }
+function dragLeaveHandler() { this.classList.remove("over"); this.removeAttribute("pos-of-dragged") }
+function dragEndHandler() { this.classList.remove("dragging"); dragLeaveHandler.call(ruleList._hovering) }
 
 txte_notch.addEventListener("dragstart", e => { e.dataTransfer.effectAllowed = "move"; e.dataTransfer.setData("id", e.target.id) })
 mainBlocks._dragSwap = function (e) {
@@ -818,7 +977,7 @@ importRules.feed = srcText => {
       .replaceAll(regAddFlagsMod(regs.comment_inArrLit, "g"), `Object.assign($2, {_comment_: "$1"})$3`)
       .replaceAll(regAddFlagsMod(regs.$rplc_inArrLit, "g"), quadBsl)
     evaledImportRules = semiStringifyRules(eval(srcText))
-    const currList = (exportRules.reap() || []).map(_ => _.replace(regs.$rplc_inArrLit, dblBsl))
+    const currList = (exportRules.reap() ?? []).map(_ => _.replace(regs.$rplc_inArrLit, dblBsl))
     const flushed = Array.from(new Set(evaledImportRules.concat(currList)))
     ruleList.innerHTML = ""
     const fSet = new Set
@@ -871,7 +1030,10 @@ ctrl_font_size._thumb = ctrl_font_size.querySelector(".mdc-slider__thumb")
 ctrl_font_size.addEventListener("focusout", function () { this.hidden = true })
 ctrl_font_size.addEventListener("MDCSlider:input", () => [mjx, ...txta].forEach(_ => _.style.setProperty("--font-size", `${ctrl_font_size_J.getValue()}rem`)))
 ctrl_pShow._ = ctrl_pShow.querySelector("[data-enum]")
-ctrl_pShow.addEventListener("click", function () { mjx._forciblyHidden = mjx.hidden = (this._.dataset.toggle = this._.dataset.enum.replace(this._.dataset.toggle, "").trim()) === "Show" })
+ctrl_pShow.addEventListener("click", function () {
+  mjx._forciblyHidden = mjx.hidden = (this._.dataset.toggle = this._.dataset.enum.replace(this._.dataset.toggle, "").trim()) === "Show"
+  txte.classList[mjx.hidden ? "add" : "remove"]("unfettered")
+})
 
 
 // -----------------------------------------------------------------------------
@@ -926,12 +1088,12 @@ function getRuleAsStr(rulePair, $ = $input$rplc) { return rulePair.querySelector
 
 snackbar.surface_div = snackbar.querySelector(".mdc-snackbar__surface")
 function tell(htmlStr, timeout, action) {
-  let detail, isErr, id
+  let detail, errID, isErr, id
   if (typeof arguments[1] === "object") {
     detail = arguments[1];
-    ({ timeout, action, isErr, id } = detail)
+    ({ timeout, action, errID, isErr = errID, id= errID } = detail)
   }
-  tell._lastId = id ?? isErr
+  tell._lastId = id
   if (!timeout) timeout = tell.timeout_tmp || tell.timeout_default
   delete tell.timeout_tmp
   snackbar.classList[isErr ? "add" : "remove"]("err")
@@ -1018,10 +1180,9 @@ addEventListener("beforeunload", backedupRules.export);
 // -----------------------------------------------------------------------------
 
 (window.MathJaxStartup = () => window.MathJax?.startup?.__domReady
-  ? (MathJax.startup.__domReady(), uCfgContent._updXM(), textarea.update() === "retry" && textarea.update(), delete window.MathJaxStartup, setTimeout(initLayout))
+  ? (MathJax.startup.__domReady(), uCfgContent._updXM(), textarea.update() === "retry" && textarea.update(), delete window.MathJaxStartup)
   : setTimeout(MathJaxStartup, 250)
 )()
-function initLayout() { if (body.classList.contains($jux) && mjx.hidden) txte.classList.add(txte._className_init = "init-full-land") }
 
 toggleStateAttrInHTML.tmpInvis()
 tryEval(uCfgContent._uSet._onload)
