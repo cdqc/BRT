@@ -381,7 +381,6 @@ btn_diff._diffTables_gen = () => {
     : mergeStrings(rc)
 
 
-
   function mergeStrings(records) {
     for (let i = 0; i < records.length; /* __i__debug = */ ++i) {
       [, i_a /*"anchor index" in the whole string*/, mk /*"mark"*/, , hasJud] = records[i]
@@ -402,11 +401,9 @@ btn_diff._diffTables_gen = () => {
     }
     const jud = { "isAdded": $_.become, "isDeleted": $_.replaced }[isReversed ? "isDeleted" : "isAdded"]
     const index = str2.indexOf(str1)
-    if (str1.startsWith("\n") || str1.endsWith("\n") || str2.startsWith("\n") || str2.endsWith("\n")) debugger
     ret = [arr[i], arr[i + 1]]
     arr[i].replaceWith(str1, i_a, $_.unchanged, arr[i][3])
     arr[i + 1].replaceWith(str2.substring(index + str1.length), i_a, jud, arr[i][3], jud)
-    // if (__i__debug === 3 && _isAgain) { console.log($str(arr)); debugger }
     if (index > 0) { arr.splice(i, 0, [str2.substring(0, index), i_a, jud, arr[i][3], jud]); ret.unshift(arr[i]) }
     return ret
   }
