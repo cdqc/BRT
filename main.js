@@ -294,8 +294,8 @@ function rplc({ caller, times = 1 } = {}) {
     textarea.value = rplcResultText
     tell(`Replaced <b>${count}</b> places`)
     btn_undo._enable()
+    rplc._times = times
   }
-  rplc._times = times
   return { count }
 }
 function lMRFYUNM/*"let me repeat for you until no match"*/() {
@@ -324,20 +324,14 @@ btn_diff._alloc = () => {
     btn_diff._diffTables_gen()
     let group = 0, _finalOrder = 0, inArr, lastStr
     const stringify = (rec, i, arr) => {
-      let ret, nl
+      let ret
       if (Array.isArray(rec[0])) {
-        nl = undefined, (inArr = arr).i = i
-        ret = `<span grp=${++group}>${rec.map(stringify).join("")}</span>`
-        if (nl) ret = `${nl}${ret}`
+        (inArr = arr).i = i
+        ret = `<span ${btn_diff._alloc._grp ?? "grp"}=${++group}>${rec.map(stringify).join("")}</span>`
         return ret
       }
-      const [str, , mark, { finalOrder }] = rec
-      nl = !lastStr?.endsWith("\n") && !str.startsWith("\n") && (
-        finalOrder > _finalOrder + 1
-        || inArr && !i && inArr.i && (finalOrder === inArr[inArr.i - 1].at(-1)[3].finalOrder || [mark, inArr[inArr.i - 1].at(-1)[2]].every(diff_um_reg[0]._test))
-        || i && [arr[i - 1][0], str].some(_ => _.includes("\n"))
-      ) ? "\n" : ""
-      ret = `${nl}<span i=${finalOrder} mk=${mark}>${str}</span>`
+      const [str, idx, mark, { finalOrder }] = rec
+      ret = `<span i=${finalOrder ?? idx} mk=${mark}>${str}</span>`
       _finalOrder = finalOrder, lastStr = str
       return ret
     }
@@ -350,7 +344,7 @@ btn_diff._diffTables_put = (records, times, count) => {
   if (!count) return
   times === 1
     ? (btn_diff._diffTables_src = records, delete btn_diff._diffTables)
-    : (btn_diff._diffTables_src.unchanged = records.unchanged, diff_finalMarkers.$rr_bb_.forEach(mk => records.hasOwnProperty(mk) && btn_diff._diffTables_src[mk].push(...records[mk])))
+    : diff_markers._allTypes.forEach(mk => records.hasOwnProperty(mk) && btn_diff._diffTables_src[mk].push(...records[mk]))
 }
 const diff_finalMarkers = ["replaced", "become"]
 diff_finalMarkers.$rr_bb_ = diff_finalMarkers.flatMap(_ => [_, `${_}${$_m}`])
@@ -358,6 +352,7 @@ diff_finalMarkers.$r_b_rb = diff_finalMarkers.map(_ => `${_}${$_m}`).concat(diff
 diff_finalMarkers.reg = RegExp(diff_finalMarkers.join(".*"))
 const diff_keysOrd = Object.fromEntries(diff_finalMarkers.$r_b_rb.map((v, i) => [v, i]))
 const diff_markers = ["unchanged", ...diff_finalMarkers]
+diff_markers._allTypes = diff_markers.flatMap(_ => [_, `${_}${$_m}`])
 const diff_um_reg = ["*", "+"].map(_ => RegExp(`^(unchanged)(${$_m})${_}`))
 diff_um_reg.forEach(reg => reg._test = reg.test.bind(reg))
 const diff_mk_reg = RegExp(`(${diff_markers.join("|")})(${$_m})*`)
@@ -378,10 +373,11 @@ btn_diff._diffTables_gen = () => {
   }
   const rc = btn_diff._diffTables = Object.values(btn_diff._diffTables_src).flat().sort(isMode_rrplc ? sortBy.rrplc : sortBy.rplc)
   let [str, i_a/*"anchor index" in the whole string*/, mk/*"mark"*/, { precedence }] = ["example", 0, "replaced", { precedence: [1, 1] }]
+    , bouts, _precedence
     , hasJud, __i__debug
   // console.log(rc); return
   isMode_rrplc
-    ? glueSegsSimply(presortin()).forEach(mergeStrings)
+    ? (bouts = [], rc.sort(sortBy.precedence).forEach(r => r[3].precedence.toString() !== _precedence ? (_precedence = r[3].precedence.toString(), bouts.push([r])) : bouts.at(-1).push(r)), rc.replaceWith(...bouts), rc.forEach(mergeStrings), btn_diff._alloc._grp = "Round")
     : mergeStrings(rc)
 
 
@@ -393,146 +389,6 @@ btn_diff._diffTables_gen = () => {
       if (mk.startsWith("replaced") && records[i + 1][2].startsWith("become")) mergeExactSubsetStrings([records[i], records[i + 1]].map(([str]) => str), records, i, i_a)
     }
   }
-
-  function presortin() {
-    let i = rc.findIndex(([, , mk]) => mk.startsWith("replaced"))
-    if (!~i) return
-    const getPreType = record => ["_precursor", "_followers"].find(_ => record.hasOwnProperty(_))
-    const markersMap = new Map
-    addToArrInMap(markersMap, "unchanged", ...rc.slice(0, i))
-    const cluster = new Map, forerunners = new Set
-    let curr
-    --i
-    while (++i < rc.length) {
-      [str, i_a, mk, { precedence }] = curr = rc[i]
-      if (mk.startsWith("unchanged")) {
-        addToArrInMap(markersMap, "unchanged", curr)
-        continue
-      }
-      if (mk.startsWith("become")) {
-        (curr._pairTo = rc[i - 1])
-          ._precursor?._followers.push(curr) ??
-          curr._pairTo._followers.unshift(curr)
-        continue
-      }
-      addToArrInMap(cluster, str, curr)
-      forerunners._size = forerunners.size
-      for (const r of forerunners) {
-        const [_str, _i_a, _mk, { precedence: _precedence }] = r, matchingIndexs = [_i_a, _i_a + _str.length]
-        if (matchingIndexs.includes(i_a) && i_a === _i_a + (sortingWeights(precedence, _precedence) === 0 ? _str.length : 0)) {
-          tranLead(curr, r)
-          updJoinedSegs(r)
-          r._awaitingSuccessor && cluster.get(_str).some(_r => _r._joinedSegs.includes(r._joinedSegs)) && delete r._awaitingSuccessor
-          break
-        }
-        if (r._awaitingSuccessor === str && _str !== str) {
-          tranLead(r, curr)
-          break
-        }
-      }
-      if (!getPreType(curr)) {
-        if (cluster.get(str).length > 1) {
-          const precedent = cluster.get(str).at(-2)._precursor
-          if (precedent) {
-            const precurStr = precedent[0]
-            const curr_precursor = cluster.get(precurStr).find(_ => _ !== precedent && _._followers && precedent._joinedSegs.startsWith(_._joinedSegs))
-            if (curr_precursor) tranLead(curr, curr_precursor)
-            else if (precurStr !== str) curr._awaitingSuccessor = precurStr
-          }
-        }
-        if (!curr._precursor) { curr._followers = []; forerunners.add(curr) }
-      }
-      updJoinedSegs(curr._precursor)
-    }
-
-    // console.log(map(forerunners, updJoinedSegs))
-    const unchGroup = markersMap.get("unchanged"), pairsGroups = map(forerunners, regiment)
-    pairsGroups._idxs = map(forerunners, fr => fr._followers.at(-1)[1]).sort(localeCompare)
-    pairsGroups.forEach((records, i) => records.sort(sortBy.precedence).forEach(r => r[1] = pairsGroups._idxs[i]))
-    rc.splice(0, rc.length, ...extraWrap([...unchGroup, ...pairsGroups]))
-    // console.log(pairsGroups, cluster, rc); debugger
-    return { forerunners, unchGroup, pairsGroups }
-
-    function updJoinedSegs(tapArr) { return tapArr?.hasOwnProperty("_followers") ? tapArr._joinedSegs = joinSegs(regiment(tapArr)) : "" }
-    function tranLead(pred, succ) {
-      succ._followers = [...succ._followers, ...regiment(pred)]
-      pred._precursor = succ;
-      ["_awaitingSuccessor", "_followers"].forEach(_ => delete pred[_])
-      forerunners.delete(pred)
-      modTextIndex(succ)
-    }
-    function modTextIndex(tapArr) { tapArr._followers.forEach(arr => { if (arr[1] !== tapArr[1] && sortingWeights(arr[3].precedence, tapArr[3].precedence)) { arr[1] = tapArr[1] } }) }
-  }
-  function joinSegs(arr) { return arr.map(([s]) => s).join("") }
-  function regiment(tapArr) { return [tapArr, ...tapArr._followers ?? []] }
-
-  function glueSegsSimply({ forerunners, unchGroup }) {
-    const unch_curr = () => unchGroup[0]
-    const unch_precedence = unch_curr()?.[3].precedence
-    if (!unch_precedence) return
-    const anArr = () => Object.assign([], { _push() { each(arguments, r => regiment(r).forEach(r => r[3].finalOrder = ++finalOrder)); this.push(...arguments) } })
-    unchGroup._col = ["_peers", "_depot", "_trailers"]
-    unchGroup._col.forEach(_ => unchGroup[_] = anArr())
-    function retire(isPeer = true) {
-      forerunners.delete(forerunner)
-      if (!isPeer) return
-      unchGroup._peers._push(...unch_curr()._isEnd ? [unchGroup.shift()] : [], forerunner)
-    }
-    function deposit(record) {
-      if (record._isEnd) return
-      unchGroup._depot._push(record)
-    }
-    function slice() {
-      const [lhs, rhs] = [[, i_a], [i_a + str.length]].map(([start, end]) => matchingStr.substring(start, end))
-      if (!lhs) return
-      if (rhs) {
-        uCurr[0] = rhs
-        uCurr._leftHalf = [lhs, ...uCurr.slice(1, 3), { precedence: uCurr[3].precedence }]
-        uCurr._leftHalf._rightHalf = uCurr
-      }
-      [uCurr._leftHalf ?? uCurr, forerunner].forEach(deposit)
-      if (!rhs) uCurr._isEnd = true
-      return uCurr._leftHalf
-    }
-    let forerunner, matchingStr, betwixt, uCurr, finalOrder = 0
-    for (forerunner of forerunners) {
-      if (!unchGroup.length) {
-        unchGroup._trailers._push(...forerunners)
-        break
-      }
-      if (regiment(forerunner).some(r => !sortingWeights(r[3].precedence, unch_precedence))) {
-        unch_curr()._isEnd = true
-        retire()
-        continue
-      }
-      for (let i = 0, goOn; i < unchGroup.length; goOn = false, ++i) {
-        uCurr = unchGroup[i]
-        matchingStr = uCurr[0]
-        const overlaps = regiment(forerunner).filter(r => r[2].startsWith("become") && !!~(r._overlapIdx = matchingStr.indexOf(r[0]))).sort(sortBy.length)
-        // console.log(matchingStr, forerunner, overlaps); debugger
-        if (overlaps.length) {
-          [str] = betwixt = overlaps.pop(), ({ _overlapIdx: i_a } = betwixt)
-          if (str) {
-            const _leftHalf = slice()
-            if (_leftHalf) { _leftHalf[0] = overlaps.reduceRight((mtStr, clip) => mtStr.replace(clip[0], ""), _leftHalf[0]) }
-            retire(false)
-          }
-          else if (betwixt[1] > uCurr[1]) {
-            i_a += Infinity
-            --i; goOn = true
-          }
-        }
-        else { i_a = -1; retire() }
-        if (goOn || !~i_a || i_a + str.length >= matchingStr.length) deposit(unchGroup.shift())
-        if (!goOn && (!!~i_a || !str)) break
-      }
-    }
-    unchGroup.splice(0).forEach(deposit)
-    unchGroup._cohorts = unchGroup._col.map(_ => unchGroup[_].map(regiment)).flat()
-    unchGroup._finalList = unchGroup._cohorts.sort(sortBy.finalOrder)
-    return rc.replaceWith(...unchGroup._finalList)
-  }
-
 
   function mergeExactSubsetStrings([str1, str2, isReversed], arr, i, i_a, { _isAgain } = {}) {
     if (i < 0) arguments[2] = i = arr.length + i
@@ -546,6 +402,7 @@ btn_diff._diffTables_gen = () => {
     }
     const jud = { "isAdded": $_.become, "isDeleted": $_.replaced }[isReversed ? "isDeleted" : "isAdded"]
     const index = str2.indexOf(str1)
+    if (str1.startsWith("\n") || str1.endsWith("\n") || str2.startsWith("\n") || str2.endsWith("\n")) debugger
     ret = [arr[i], arr[i + 1]]
     arr[i].replaceWith(str1, i_a, $_.unchanged, arr[i][3])
     arr[i + 1].replaceWith(str2.substring(index + str1.length), i_a, jud, arr[i][3], jud)

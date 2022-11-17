@@ -1,9 +1,9 @@
 window.MathJax = {
-  loader: { load: ["[tex]/mathtools"] },
+  loader: { load: ["[tex]/mathtools", "[tex]/amscd"] },
   svg: { fontCache: "global" },
   tex: {
     inlineMath: [["$", "$"], ["\\(", "\\)"]],
-    packages: { "[+]": ["mathtools"] },
+    packages: { "[+]": ["mathtools", "amscd"] },
     tags: "ams"
   }
 }

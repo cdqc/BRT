@@ -228,6 +228,29 @@ textarea.nowrap,
   opacity: unset;
 }
 
+#txtd {
+  counter-reset: Round;
+}
+
+#txtd>[Round]::before {
+  counter-increment: Round;
+  content: "Round " counter(Round) ": ";
+  display: block;
+  font-family: times;
+  font-style: italic;
+  font-size: larger;
+  font-weight: bolder;
+  border-top: 0.3ch solid azure;
+  padding: 1.66rem 0 1rem;
+  margin-top: 5rem;
+  color: azure;
+}
+
+#txtd>[Round]:first-child:before {
+  margin-top: unset;
+  border-top: unset;
+}
+
 
 .mdc-text-field--filled:not(.mdc-text-field--disabled) {
   background-color: var(--md-sys-color-on-secondary);
@@ -385,7 +408,7 @@ body:not(.side-by-side)>#btns {
   --border-size: 2px;
   --margin-size: calc(2 * var(--border-size));
   --border-color: wheat;
-  transition: all 0.25s;
+  transition: all 0.2s;
 }
 
 [rule-pair].over[pos-of-dragged=front] {
