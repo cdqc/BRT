@@ -132,7 +132,7 @@ function prevent(e) { e.preventDefault() }
 const theSel = getSelection()
 
 function isLandscape() { return isLandscape._ = matchMedia("(orientation: landscape)").matches }
-
+Object.defineProperty(window, "isTouchDevice", { get() { return matchMedia("(any-pointer: coarse)").matches } })
 
 // -----------------------------------------------------------------------------
 

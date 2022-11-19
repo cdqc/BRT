@@ -9,6 +9,7 @@ html {
   --color: #EEE;
   --code-color: #d19a66;
   --ani-fiu: fade-in-up 0.5s;
+  --stroke-blue: rgb(74, 144, 226);
 }
 
 body {
@@ -214,39 +215,23 @@ textarea.nowrap,
   background-color: rgba(var(--color-bec), var(--opacity));
 }
 
-#txtd>[grp]:hover {
-  background-color: hwb(0 100% 0% / 0.064);
-}
-
-#txtd>[grp]:hover>[mk] {
-  opacity: unset;
-  filter: brightness(1.024);
-}
-
-#txtd>[grp]:has(>[mk^=unchanged]:last-child)+[grp]>[mk^=unchanged]:first-child {
-  background-color: unset;
-  opacity: unset;
-}
-
 #txtd {
-  counter-reset: Round;
+  counter-reset: round;
 }
 
-#txtd>[Round]::before {
-  counter-increment: Round;
-  content: "Round " counter(Round) ": ";
+#txtd>[round]::before {
+  counter-increment: round;
+  content: "Round " counter(round) ": ";
   display: block;
-  font-family: times;
-  font-style: italic;
   font-size: larger;
   font-weight: bolder;
-  border-top: 0.3ch solid azure;
-  padding: 1.66rem 0 1rem;
-  margin-top: 5rem;
-  color: azure;
+  border-top: 0.3ch solid var(--stroke-blue);
+  padding: 1rem 0;
+  margin-top: 4rem;
+  color: var(--stroke-blue);
 }
 
-#txtd>[Round]:first-child:before {
+#txtd>[round]:first-child:before {
   margin-top: unset;
   border-top: unset;
 }
@@ -392,16 +377,32 @@ body:not(.side-by-side)>#btns {
 }
 
 
-[rule-pair][draggable=true] {
-  cursor: move;
-}
-
 [rule-pair][draggable=true]:hover {
   filter: brightness(1.2);
 }
 
-[rule-pair][draggable=true].dragging {
-  opacity: 0.5;
+[rule-pair][draggable=true].dragging,
+.touch-drag>[rule-pair].dragging {
+  opacity: 0.8;
+  filter: brightness(0.9);
+}
+
+.touch-drag {
+  touch-action: none;
+}
+
+[rule-pair][draggable=true],
+[rule-pair][draggable=true] *,
+.touch-drag>[rule-pair],
+.touch-drag>[rule-pair] * {
+  cursor: grab;
+}
+
+[rule-pair][draggable=true].dragging,
+[rule-pair][draggable=true].dragging *,
+.touch-drag>[rule-pair].dragging,
+.touch-drag>[rule-pair].dragging * {
+  cursor: grabbing;
 }
 
 [rule-pair].over {
@@ -409,6 +410,7 @@ body:not(.side-by-side)>#btns {
   --margin-size: calc(2 * var(--border-size));
   --border-color: wheat;
   transition: all 0.2s;
+  filter: brightness(1.25);
 }
 
 [rule-pair].over[pos-of-dragged=front] {

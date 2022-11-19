@@ -1,11 +1,11 @@
 window.MathJax = {
-  loader: { load: ["[tex]/mathtools", "[tex]/amscd"] },
-  svg: { fontCache: "global" },
+  loader: { load: ["[tex]/mathtools", "[tex]/amscd", "[tex]/physics"] },
   tex: {
-    inlineMath: [["$", "$"], ["\\(", "\\)"]],
-    packages: { "[+]": ["mathtools", "amscd"] },
-    tags: "ams"
-  }
+    packages: { "[+]": ["mathtools", "amscd", "physics"] },
+    tags: "ams",
+    inlineMath: [["$", "$"], ["\\(", "\\)"]]
+  },
+  svg: { fontCache: "global" }
 }
 
 document.head.appendChild(

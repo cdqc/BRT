@@ -322,19 +322,10 @@ btn_diff._alloc = () => {
   if (!btn_diff._diffTables_src) return ""
   if (!btn_diff._diffTables) {
     btn_diff._diffTables_gen()
-    let group = 0, _finalOrder = 0, inArr, lastStr
-    const stringify = (rec, i, arr) => {
-      let ret
-      if (Array.isArray(rec[0])) {
-        (inArr = arr).i = i
-        ret = `<span ${btn_diff._alloc._grp ?? "grp"}=${++group}>${rec.map(stringify).join("")}</span>`
-        return ret
-      }
-      const [str, idx, mark, { finalOrder }] = rec
-      ret = `<span i=${finalOrder ?? idx} mk=${mark}>${str}</span>`
-      _finalOrder = finalOrder, lastStr = str
-      return ret
-    }
+    let group = 0, str, idx, mark
+    const stringify = rec => Array.isArray(rec[0])
+      ? `<span ${btn_diff._alloc._grp ?? "grp"}=${++group}>${rec.map(stringify).join("")}</span>`
+      : ([str, idx, mark] = rec, `<span i=${idx} mk=${mark}>${str}</span>`)
     btn_diff._diffTables_cat = btn_diff._diffTables.map(stringify).join("")
   }
   txtd.innerHTML = btn_diff._diffTables_cat
@@ -346,16 +337,12 @@ btn_diff._diffTables_put = (records, times, count) => {
     ? (btn_diff._diffTables_src = records, delete btn_diff._diffTables)
     : diff_markers._allTypes.forEach(mk => records.hasOwnProperty(mk) && btn_diff._diffTables_src[mk].push(...records[mk]))
 }
+
 const diff_finalMarkers = ["replaced", "become"]
-diff_finalMarkers.$rr_bb_ = diff_finalMarkers.flatMap(_ => [_, `${_}${$_m}`])
 diff_finalMarkers.$r_b_rb = diff_finalMarkers.map(_ => `${_}${$_m}`).concat(diff_finalMarkers)
-diff_finalMarkers.reg = RegExp(diff_finalMarkers.join(".*"))
 const diff_keysOrd = Object.fromEntries(diff_finalMarkers.$r_b_rb.map((v, i) => [v, i]))
 const diff_markers = ["unchanged", ...diff_finalMarkers]
 diff_markers._allTypes = diff_markers.flatMap(_ => [_, `${_}${$_m}`])
-const diff_um_reg = ["*", "+"].map(_ => RegExp(`^(unchanged)(${$_m})${_}`))
-diff_um_reg.forEach(reg => reg._test = reg.test.bind(reg))
-const diff_mk_reg = RegExp(`(${diff_markers.join("|")})(${$_m})*`)
 const placeholder = { anArrWithStr: [""], obj: {} }
 
 btn_diff._diffTables_gen = () => {
@@ -365,25 +352,30 @@ btn_diff._diffTables_gen = () => {
   const isMode_rrplc = rplc._times > 1
   const $_ = new Proxy({}, { get(_target, key) { return `${key}${isMode_rrplc ? $_m : ""}` } })
   const sortBy = {
-    rrplc: ([, i1, mk1, { precedence: pr1 }], [, i2, mk2, { precedence: pr2 }]) => mk1 === "unchanged" && -1 || sortingWeights(pr1, pr2) || i1 - i2 || diff_keysOrd[mk1] - diff_keysOrd[mk2],
     rplc: ([, i1, mk1], [, i2, mk2]) => i1 - i2 || mk1 === "unchanged" /*[^note:b-u]*/ || diff_keysOrd[mk1] - diff_keysOrd[mk2],
     precedence: ([, , , { precedence: pr1 }], [, , , { precedence: pr2 }]) => sortingWeights(pr1, pr2),
-    length: ([str1], [str2]) => str1.length - str2.length,
-    finalOrder: ([[, , , { finalOrder: o1 }]], [[, , , { finalOrder: o2 }]]) => o1 - o2
   }
-  const rc = btn_diff._diffTables = Object.values(btn_diff._diffTables_src).flat().sort(isMode_rrplc ? sortBy.rrplc : sortBy.rplc)
-  let [str, i_a/*"anchor index" in the whole string*/, mk/*"mark"*/, { precedence }] = ["example", 0, "replaced", { precedence: [1, 1] }]
-    , bouts, _precedence
-    , hasJud, __i__debug
-  // console.log(rc); return
-  isMode_rrplc
-    ? (bouts = [], rc.sort(sortBy.precedence).forEach(r => r[3].precedence.toString() !== _precedence ? (_precedence = r[3].precedence.toString(), bouts.push([r])) : bouts.at(-1).push(r)), rc.replaceWith(...bouts), rc.forEach(mergeStrings), btn_diff._alloc._grp = "Round")
-    : mergeStrings(rc)
+  const rc = Object.values(btn_diff._diffTables_src).flat()
+  if (isMode_rrplc) {
+    const bouts = []
+    let _precedence
+    rc.sort(sortBy.precedence).forEach(r => r[3].precedence.toString() !== _precedence ? (_precedence = r[3].precedence.toString(), bouts.push([r])) : bouts.at(-1).push(r))
+    bouts.forEach(bout => bout.sort(sortBy.rplc))
+    rc.replaceWith(...bouts)
+    rc.forEach(mergeStrings)
+    btn_diff._alloc._grp = "round"
+  }
+  else {
+    rc.replaceWith(...rc.sort(sortBy.rplc))
+    mergeStrings(rc)
+  }
+  btn_diff._diffTables = rc
 
 
   function mergeStrings(records) {
-    for (let i = 0; i < records.length; /* __i__debug = */ ++i) {
-      [, i_a /*"anchor index" in the whole string*/, mk /*"mark"*/, , hasJud] = records[i]
+    let i_a/*"anchor index" in the whole string*/, mk/*"mark"*/, hasJud
+    for (let i = 0; i < records.length; ++i) {
+      [, i_a, mk, , hasJud] = records[i]
       if (hasJud) continue
       if (mk.startsWith("replaced") && records[i + 1][2].startsWith("become")) mergeExactSubsetStrings([records[i], records[i + 1]].map(([str]) => str), records, i, i_a)
     }
@@ -711,30 +703,47 @@ btn_dockBox._updPlacement = () => {
   body.classList.toggle("dock", btn_dockBox._on)
     && body.classList.toggle("right", [txte, mjx].map(_ => +_.style.order || 0).reduce((a, b) => a - b) > 0)
 }
-btn_DnD._toggle = () => {
-  each(ruleList.children, item => {
-    if (!btn_DnD._on) return item.removeAttribute("draggable")
-    item.setAttribute("draggable", true)
-    if (!btn_DnD._added) {
-      // P.S. Although the browser itself already knows not to re-add the identity event handler
-      item.addEventListener("dragstart", dragstartHandler)
-      item.addEventListener("dragover", dragoverHandler._for_ruleList)
-      item.addEventListener("drop", dropHandler)
-      item.addEventListener("dragenter", dragEnterHandler)
-      item.addEventListener("dragleave", dragLeaveHandler)
-      item.addEventListener("dragend", dragEndHandler)
-    }
-  })
-  btn_DnD._added = true
-}
 
-function dragstartHandler(e) { if (isAnyTextSelected(e.target)) return e.preventDefault(); dragstartHandler._target = e.target.closest($rulePair), dragstartHandler._target.classList.add("dragging") }
-function dragoverHandler(e) { e.preventDefault() }
-function dropHandler({ target }) { moveElem(dragstartHandler._target, target.closest($rulePair)) }
-function isAnyTextSelected(box) { return box.matches($input$) && box.selectionStart !== box.selectionEnd }
-function dragEnterHandler() { ruleList._hovering = this; this.classList.add("over"); this.setAttribute("pos-of-dragged", isFollowedByAnother(dragstartHandler._target, this) ? "front" : "back") }
+btn_DnD._toggle = () => {
+  const toggle = btn_DnD._on ? "add" : "remove"
+  if (isTouchDevice) {
+    ruleList.classList[toggle]("touch-drag");
+    [
+      ["pointerdown", dragStartHandler],
+      ["pointermove", dragEnterHandler],
+      ["pointerleave", dragEndHandler]
+    ].forEach(
+      ([listener, handler]) => ruleList[`${toggle}EventListener`](listener, handler._byTouch)
+    )
+  }
+  else {
+    const toggleAttr = `${btn_DnD._on ? "set" : "remove"}Attribute`
+    each(ruleList.children, item => {
+      item[toggleAttr]("draggable", true);
+      [
+        ["dragstart", dragStartHandler],
+        ["dragover", dragOverHandler],
+        ["drop", dropHandler],
+        ["dragenter", dragEnterHandler],
+        ["dragend", dragEndHandler]
+      ].forEach(lH => item[`${toggle}EventListener`](...lH))
+      // P.S. Although the browser itself already knows not to re-add the identity event handler
+    })
+  }
+}
+function dragStartHandler(e) { if (isAnyTextSelectedOrTouching(e.target)) return e.preventDefault(); dragStartHandler._target = this; this.classList.add("dragging") }
+function dragOverHandler(e) { e.preventDefault() }
+function dropHandler({ target }) { moveElem(dragStartHandler._target, target.closest($rulePair)) }
+function isAnyTextSelectedOrTouching(box) { return box.matches($input$) && (isTouchDevice || box.selectionStart !== box.selectionEnd) }
+function dragEnterHandler() { this.classList.add("over"); this.setAttribute("pos-of-dragged", isFollowedByAnother(dragStartHandler._target, this) ? "front" : "back"); dragLeaveHandler._clrOld(this, false) }
 function dragLeaveHandler() { this.classList.remove("over"); this.removeAttribute("pos-of-dragged") }
-function dragEndHandler() { this.classList.remove("dragging"); dragLeaveHandler.call(ruleList._hovering) }
+function dragEndHandler() { this.classList.remove("dragging"); dragLeaveHandler._clrOld() }
+dragLeaveHandler._clrOld = (newEl, force = true) => { ruleList._hovering && (force || ruleList._hovering !== newEl) && dragLeaveHandler.call(ruleList._hovering); return ruleList._hovering = newEl }
+
+dragStartHandler._byTouch = function (e) { if (!(dragStartHandler._target = e.target.closest($rulePair))) return; this.classList[isAnyTextSelectedOrTouching(e.target) ? "remove" : "add"]("touch-drag"); if (this._notDrag = !this.classList.contains("touch-drag")) { delete dragStartHandler._target; return }; this.releasePointerCapture(e.pointerId); dragStartHandler.call(dragStartHandler._target, e) }
+dragEnterHandler._byTouch = function ({ x, y }) { if (this._notDrag) return; if (!(ruleList._newHovering = document.elementFromPoint(x, y)?.closest($rulePair)) || ruleList._newHovering === ruleList._hovering) return; dragEnterHandler.call(dragLeaveHandler._clrOld(ruleList._newHovering))/* Instead of `dragLeaveHandler(dragEnterHandler())` */; this._moved = true }
+dragEndHandler._byTouch = function () { if (this._notDrag) return; dragEndHandler.call(dragStartHandler._target); this._moved && ruleList._newHovering && (dropHandler({ target: ruleList._newHovering }), delete this._moved) }
+
 
 txte_notch.addEventListener("dragstart", e => { e.dataTransfer.effectAllowed = "move"; e.dataTransfer.setData("id", e.target.id) })
 mainBlocks._dragSwap = function (e) {
