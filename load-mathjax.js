@@ -17,11 +17,11 @@ document.head.appendChild(
   await MathJax.startup.promise
   const regexTex = /(?:\$|\\\(|\\\[|\\begin\{.*?})/
   MathJax.__configMacros_tokens = /^\s*\\(def|(re)?new(command|environment)|DeclareMathOperator|let)\b/m
-  const textareaHandler = () => {
-    if (mjx._forciblyHidden) return
-    if (typeof textarea.__preTest === "function" && textarea.__preTest() === false) return
+  const textareaHandler = async () => {
+    if (textareaHandler._executing || mjx._forciblyHidden || typeof textarea.__preTest === "function" && textarea.__preTest() === false) return
     textarea.__value ||= textarea.value
     if (!(mjx._use || regexTex.test(textarea.__value))) return
+    textareaHandler._executing = true
     mjx._use = true
     mjx.hidden = ""
     mjx.innerHTML = textarea.__value
@@ -30,12 +30,13 @@ document.head.appendChild(
     textarea.__value = ""
 
     MathJax.texReset()
-    try { MathJax.typeset([mjx]) }
+    try { await MathJax.typesetPromise([mjx]) }
     catch (e) {
       MathJax.typesetClear()
       if (e.message.endsWith("retry")) return "retry"
-      if (!e.message.includes("null")) console.error(e)
+      /* if (!e.message.includes("null")) */ console.error(e)
     }
+    finally { delete textareaHandler._executing }
   }
   MathJax.startup.__domReady = (handlerName = "update") =>
     textarea.addEventListener("input", textarea[handlerName] = throttle(textareaHandler))
