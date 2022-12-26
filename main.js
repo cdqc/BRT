@@ -54,6 +54,7 @@ assoc_MDC_inst_with_tmpl(mdc_checkbox__list, { tmplId: "mdc-checkbox" })
 assoc_MDC_inst_with_tmpl(ruleList, { tmplId: "mdc-text-field--filled", class: MDCTextField, selector: "label" })
 
 
+const pageTitle = document.title.match(/(?<!;.*)[A-Z]/g).join("")
 const { body } = document
 const txta = [textarea, txtd]
 const $checkbox$ = "input[type=checkbox]"
@@ -112,7 +113,10 @@ disposableMutObs(mjx, { attributeFilter: ["hidden"] })(txte._className_init._rm)
 
 
 exportRules._pattern = /^\s*\[\s*\[/
-textarea._checkSuppression = () => textarea._suppressed = exportRules._pattern.test(textarea.value)
+textarea._checkSuppression = e => {
+  textarea._suppressedForDelay = e?.inputType.startsWith("deleteContent")
+  textarea._suppressed = exportRules._pattern.test(textarea.value)
+}
 textarea._checkSuppression()
 const impliAdd$$/*implicitly add delimiter*/ = () => uCfgContent._uSet.LaTeX.autoOptIn && textarea.value.trim() && !textarea.value.includes("$")
 textarea.__preTest = () => impliAdd$$() && !MathJax.__configMacros_tokens.test(textarea.value) ? textarea.__value = `$$${textarea.value}$$` : delete textarea.__value
@@ -433,6 +437,24 @@ btn_cut.addEventListener("click", async () => {
   await navigator.clipboard.writeText(text)
   textarea.value = ""
 })
+btn_dlSVG.addEventListener("click", () => {
+  const lastSvgCt = mjx.querySelector("#mjx>mjx-container[jax=SVG]:last-of-type")
+  if (!lastSvgCt) return tell(`Math SVG elements are not present`)
+  const lastSvgEl = lastSvgCt.querySelector("svg")
+  if (!lastSvgEl._verticalOffset) {
+    lastSvgEl._verticalOffset = parseFloat(lastSvgEl.style.verticalAlign) / 2
+    lastSvgEl._oriWidth = lastSvgEl.getAttribute("width")
+    lastSvgEl.setAttribute("width", `${(parseFloat(lastSvgEl._oriWidth) - lastSvgEl._verticalOffset)._toPrecision()}${lastSvgEl._oriWidth.match(/\D+$/)}`)
+  }
+  const svgDefEl = mjx._svgGCD.cloneNode()
+  const svgRefs = map(new Set(map(lastSvgEl.querySelectorAll("use"), _ => _.getAttribute("xlink:href").replace("#", ""))), id => mjx._svgGCD.children[id].cloneNode())
+  const cpSvgEl = lastSvgEl.cloneNode(true)
+  svgDefEl.prepend(...svgRefs); cpSvgEl.prepend(svgDefEl)
+  let eqnContent
+  [".MathJax>mjx-assistive-mml [data-semantic-type]:not([data-semantic-type=empty])", "mjx-assistive-mml>math"].find((_, i) => (eqnContent = lastSvgCt.querySelectorAll(_), eqnContent._nonSemantic = i, eqnContent.length))
+  eqnContent = filter(!eqnContent._nonSemantic ? eqnContent : eqnContent[0].getElementsByTagName("*"), _ => !_.childElementCount).map(_ => _.textContent).join("")
+  downloadText(`[${pageTitle}] eqn${uCfgContent._uSet.LaTeX.contentAsDownloadName ? ` ${eqnContent}` : ""}.svg`, cpSvgEl.outerHTML)
+})
 btn_rem.addEventListener("click", () => textarea.value && localStorage.setItem("btn_rem._remed", btn_rem._remed = textarea.value))
 btn_rec.addEventListener("click", () => (btn_rem._remed = btn_rem._remed || localStorage.getItem("btn_rem._remed")) && (textarea.value = btn_rem._remed))
 btn_recAS.addEventListener("click", () => textarea.value = localStorage.getItem("autosaved") || textarea.value)
@@ -462,14 +484,17 @@ uCfgContent._preset = {
   },
   LaTeX: {
     autoOptIn: false,
+    contentAsDownloadName: false,
     "demo<f>": "get [`demo<f>`]() { this[`macros :preset<raw>`] += `e i`.split(/\\s+/).map($mathrm).join(``) }",
-    "macros :preset<raw>": String.raw`\def\d{\mathrm{d}}`
+    "macros :preset<raw>": String.raw`\def\d{\mathrm{d}}`,
+    renderAs: "SVG"
   },
   match: {
     callbackVars: { [$cIdxS]: "$I", [$cIdxE]: "$i", [$cPre]: "$s", [$cStr]: "$S", [$cRHC]: "$n" },
     "filter :preset:LaTeX": RegExp(String.raw`${rM.la[2]}.+?${rM.la[2]}|(?<=${rM.la[0]}|^)${rM.la[1]}(?!\$).+?${rM.la[1]}(?=${rM.la[0]}|$)`),
+    filterIsOn: false,
     "precall :demo<f>": `
-                        $lpl = textarea.value.match(/^/mg).length.toString().length
+                        $lpl = textarea.value.match(/^/gm).length.toString().length
                         `,
     "precall .output": false,
   },
@@ -478,23 +503,34 @@ uCfgContent._preset = {
                      `
 }
 Object.defineProperty(window, "_uVars", { get() { return uCfgContent._uSet.match.callbackVars } })
-uCfgSave._ = (e, rebuild = true) => {
+uCfgSave._ = (e, rebuild = true, checkKeyNames = true, silent) => {
   try {
     localStorage.setItem("uCfg", uCfgContent.textContent/*[^note]*/ = $str(rebuild ? uCfgContent._uSet = mergeCfg() : uCfgContent._uSet))
     // [^note]: [Special Note] Using `innerText` may inexplicably generate an extra blank line that shouldn't exist!
     //          (Example encountered in this project: after creating a `__ <f>` with `__ :demo<f>` as a template and clicking save,
     //           a blank line appears before the fence code identifier of the template)
-    tell._lastId === uCfgSave._errID && mdc_snackbar.close()
+    if (checkKeyNames) {
+      buildObjPath._keys = Array(2).fill(0).map(_ => new Map);
+      [uCfgContent._preset, uCfgContent._uSet].map((obj, i) => buildObjPath(obj, "", (key, _o, path) => buildObjPath._keys[i].set(key.replaceAll(" ", ""), [key, path])))
+      const unrecognized = []
+      buildObjPath._keys[1].forEach(([key, path], sKey) => !buildObjPath._keys[0].has(sKey) && unrecognized.push([key, path]))
+      if (unrecognized.length) throw Object.assign(Error(`Config saved, but the following keys are not recognized:<br><ul class=gap>${unrecognized.map(([key, path]) => ([key, path] = [key, path].map(escapeSpecialXMLChars), `<li><code>${key}</code>  (\`${path}\`)</li>`)).join("")}</ul>`), { ID: uCfgSave._errIDs[1] })
+    }
+    if (silent) return
+    if (uCfgSave._errIDs.includes(tell._lastId)) mdc_snackbar.close()
   }
-  catch (err) { e.stopPropagation(); tell(err, { errID: uCfgSave._errID = "uCfgSave._errID" }) }
+  catch (err) { e && e.stopPropagation(); tell(err.ID ? err.message : err, { errID: err.ID || uCfgSave._errIDs[0] }) }
 }
-uCfgSave.__ = uCfgSave._.bind(null, false, false)
+uCfgSave.__ = uCfgSave._.bind(null, ...Array(3).fill(false), true)
 uCfgSave.addEventListener("click", e => { delete uCfgContent._retract; uCfgSave._(e) })
+uCfgSave._errIDs = ["uCfgSave.err", "uCfgSave.unrecognized"]
 
 uCfgContent._uSet = mergeCfg()
 uCfgContent._updXM = () => {
-  if (typeof uCfgContent._uSet.LaTeX._macros === "string") { MathJax.typesetClear(); MathJax.tex2chtml(uCfgContent._uSet.LaTeX._macros) }
+  if (isStr(uCfgContent._uSet.LaTeX._macros)) { MathJax.typesetClear(); MathJax.tex2svgPromise(uCfgContent._uSet.LaTeX._macros) }
   textarea.update()
+  MathJax.config._menuSettings({ renderer: uCfgContent._uSet.LaTeX.renderAs })
+  if (/SVG/i.test(uCfgContent._uSet.LaTeX.renderAs)) mjx._svgGCD = document.querySelector("#MJX-SVG-global-cache>defs")
 }
 uCfgContent._uMatchPrep = ({ _uVars: old_uVars }) => {
   const invalid = [];
@@ -506,13 +542,13 @@ uCfgContent._uMatchPrep = ({ _uVars: old_uVars }) => {
   }
   uCfgContent._uMatchPrep_btnSync()
 }
-uCfgContent._uMatchPrep_btnSync = () => { toggleStateAttrInHTML.tmpInvis(); btn_matchSpecified.on = uCfgContent._uSet.match.filterOn }
+uCfgContent._uMatchPrep_btnSync = () => { toggleStateAttrInHTML.tmpInvis(); btn_matchSpecified.on = uCfgContent._uSet.match.filterIsOn }
 uCfgContent._uCSS = () => {
   let { order } = uCfgContent._uSet.CSS.layout
   const handled = {}
   uOptJux()
 
-  if (typeof order === "string") {
+  if (isStr(order)) {
     order = [...order.matchAll(/#(\w+)/g)]
     let invalidID
     if (invalidID = order.find(([$id]) => !mainBlocks._ids.has($id))) return tell(`❌ ‣ CSS.layout.order ―<br>Invalid ID: ${invalidID[0]}`)
@@ -553,7 +589,7 @@ function mergeCfg() {
   ["CSS.layout", "match"].forEach(prop => delegate(...objPathToLastProp(cfg, prop), (_tgt, key) => patchySaveKeys.has(key) && uCfgSave.__()))
   return cfg
 }
-const patchySaveKeys = new Set([$jux$f, "filterOn"])
+const patchySaveKeys = new Set([$jux$f, "filterIsOn"])
 uCfgDefault.addEventListener("click", () => {
   // e.stopPropagation() // No need if its html attribute `data-mdc-dialog-action` is not appended
   uCfgContent._retract = uCfgContent.innerText
@@ -586,7 +622,7 @@ btn_toggleAll.addEventListener("click", () => {
   btn_toggleAll._detectBoxesStat(btn_toggleAll._nextState)
 })
 btn_toggleAll._detectBoxesStat = direct => {
-  if (typeof direct === "string") return boxesStat.innerText = direct
+  if (isStr(direct)) return boxesStat.innerText = direct
   const boxes = getCheckboxes(), coll = {}
   for (let i = 0, checked; i < boxes.length; ++i) {
     ({ checked } = boxes[i])
@@ -759,7 +795,7 @@ mainBlocks.forEach(_ => {
   _.addEventListener("drop", mainBlocks._dragSwap)
 })
 
-btn_matchSpecified._toggle = v => uCfgContent._uSet.match.filterOn = v
+btn_matchSpecified._toggle = v => uCfgContent._uSet.match.filterIsOn = v
 
 
 btn_menu.addEventListener("click", () => {
@@ -829,7 +865,7 @@ importRules.addEventListener("click", () => {
 })
 const Y = true
 importRules.feed = srcText => {
-  if (typeof srcText !== "string" || srcText === "null") return
+  if (!isStr(srcText) || srcText === "null") return
   try {
     let evaledImportRules = eval(srcText)
     if (!Array.isArray(evaledImportRules) || !Array.isArray(evaledImportRules[0])) {
@@ -874,7 +910,10 @@ exportRules.reap = retType => {
   return retType === "string" ? `[\n  ${rules.join(",\n  ")}\n]` : rules
 }
 exportRules._ = () => exportRules.reap("string")
-dlRules.addEventListener("click", bak => ruleList.childElementCount ? (bak = exportRules._()) && downloadText(`[BTR] Rules${workspaceName && ` (${workspaceName})`}.bak.jsx`, bak) : tell("The rule list is empty"));
+dlRulesAndCfgs.addEventListener("click", bak => {
+  ruleList.childElementCount ? (bak = exportRules._()) && downloadText(`[${pageTitle}] Rules${workspaceName && ` (${workspaceName})`}.bak.jsx`, bak) : tell("The rule list is empty")
+  downloadText(`[${pageTitle}] Configs.bak.jsx`, $str(uCfgContent._uSet))
+});
 
 
 [btn_rplc, btn_rrplc, btn_undo, btn_rec, btn_recAS].forEach(_ => _.addEventListener("click", ({ target }) => {
@@ -982,10 +1021,7 @@ tell.timeout_max = 10000
 tell.stay = timeout => {
   timeout = Math.min(timeout, tell.timeout_max)
   clearTimeout(tell._tId)
-  tell._tId = setTimeout(() => {
-    if (snackbar.matches(":hover") || getSelection().focusNode?.parentNode.matches("[class*=snackbar]")) return tell.stay(timeout)
-    mdc_snackbar.close()
-  }, timeout)
+  tell._tId = setTimeout(() => (snackbar.matches(":hover") || getSelection().focusNode?.parentNode.closest("[class*=snackbar]")) ? tell.stay(timeout) : mdc_snackbar.close(), timeout)
 }
 
 function assoc_MDC_inst_with_tmpl(arbitraryObj, { tmplId = "", class: Class, selector } = {}) {
@@ -1028,7 +1064,7 @@ const backedupRules = {
   import: () => importRules.feed(localStorage.getItem(backedupRules.name)),
   export: () => localStorage.setItem(backedupRules.name, exportRules._())
 }
-const bc = new BroadcastChannel("BTR")
+const bc = new BroadcastChannel(pageTitle)
 bc.addEventListener("message", ({ data }) => {
   switch (data) {
     case 0: backedupRules.export(); bc.postMessage(1); bc.close(); break
@@ -1037,15 +1073,20 @@ bc.addEventListener("message", ({ data }) => {
 })
 bc.postMessage(0)
 setTimeout(() => !bc._replyReceived && backedupRules.import())
-addEventListener("beforeunload", backedupRules.export);
+addEventListener("beforeunload", backedupRules.export)
 
 
 // -----------------------------------------------------------------------------
 
-(window.MathJaxStartup = () => window.MathJax?.startup?.__domReady
-  ? (MathJax.startup.__domReady(), uCfgContent._updXM(), textarea.update() === "retry" && textarea.update(), delete window.MathJaxStartup)
+window.MathJaxStartup = () => window.MathJax?.startup?.__domReady
+  ? (MathJax.startup.__domReady(), uCfgContent._updXM(), MathJaxStartup._updMjx(), delete window.MathJaxStartup)
   : setTimeout(MathJaxStartup, 250)
-)()
+MathJaxStartup._updMjx = () => {
+  const updMjx = () => textarea.update() === "retry" && textarea.update()
+  MathJax.config._.collapsible ? setTimeout(updMjx) : updMjx()
+}
+window.MathJaxStartup()
+
 
 toggleStateAttrInHTML.tmpInvis()
 tryEval(uCfgContent._uSet._onload)

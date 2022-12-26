@@ -3,13 +3,14 @@
 
 <head>
   <meta charset=UTF-8>
-  <meta name=viewport content="width=device-width,initial-scale=1">
-  <title>Batch Text Replace</title>
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="keywords" content="Convert LaTeX to SVG using MathJax ;  batch replace text/string">
+  <title>Batch Replace Text ; LaTeX to SVG ❤️ MathJax</title>
   <link href="https://unpkg.com/material-components-web@latest/dist/material-components-web.min.css" rel=stylesheet>
   <!-- <link href="material-components-web.min.css" rel=stylesheet> -->
   <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel=stylesheet>
   <link href="style.css" rel="stylesheet">
-  <script src="util.js" defer></script>
+  <script src="util.js"></script>
   <script src="https://unpkg.com/material-components-web@latest/dist/material-components-web.min.js" defer></script>
   <!-- <script src="material-components-web.min.js" defer></script> -->
   <script src="main.js" defer></script>
@@ -83,6 +84,11 @@
         <span class="mdc-button__ripple"></span>
         <i class="material-icons mdc-button__icon">content_cut</i>
         <span class="mdc-button__label">Cut</span>
+      </button>
+      <button id="btn_dlSVG" class="mdc-button mdc-button--raised mdc-button--leading">
+        <span class="mdc-button__ripple"></span>
+        <i class="material-icons mdc-button__icon">photo_album</i>
+        <span class="mdc-button__label">Download SVG</span>
       </button>
 
       <button id="btn_cfg" class="mdc-button mdc-button--raised mdc-button--leading">
@@ -228,9 +234,9 @@
               <span class="mdc-list-item__ripple"></span>
               <span class="mdc-list-item__text">Export rules to textbox</span>
             </li>
-            <li id="dlRules" class="mdc-list-item" role="menuitem">
+            <li id="dlRulesAndCfgs" class="mdc-list-item" role="menuitem">
               <span class="mdc-list-item__ripple"></span>
-              <span class="mdc-list-item__text">Download rules</span>
+              <span class="mdc-list-item__text">Download rules and configs</span>
             </li>
             <li id="ctrl_fontSize" class="mdc-list-item" role="menuitem">
               <span class="mdc-list-item__ripple"></span>
@@ -270,7 +276,7 @@
           <h2 class="mdc-dialog__title" id="dialog-title">Configuration</h2>
           <button class="mdc-icon-button material-icons mdc-dialog__close" data-mdc-dialog-action=" ">close</button>
         </div>
-        <div id="uCfgContent" class="mdc-dialog__content" contenteditable spellcheck="false"></div>
+        <div id="uCfgContent" class="mdc-dialog__content mathjax_ignore" contenteditable spellcheck="false"></div>
         <div class="mdc-dialog__actions">
           <button id="uCfgDefault" type="button" class="mdc-button mdc-dialog__button">
             <span class="mdc-button__label">ViewDefault</span>

@@ -12,6 +12,7 @@ html {
   --link-visited-color: #c58af9;
   --ani-fiu: fade-in-up 0.5s;
   --stroke-blue: rgb(74, 144, 226);
+  --sakura-color: 255, 183, 197;
 }
 
 body {
@@ -100,6 +101,18 @@ body.side-by-side.dock>#ruleList {
   grid-area: r;
 }
 
+
+code {
+  background-color: rgba(var(--sakura-color), 0.25);
+  word-wrap: break-word;
+  box-decoration-break: clone;
+  padding: .1rem .3rem .2rem;
+  border-radius: .2rem;
+}
+
+ul.gap>li {
+  margin: 0.5rem auto;
+}
 
 
 input[type=text],
