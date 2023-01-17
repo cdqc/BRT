@@ -515,8 +515,8 @@ uCfgSave._ = (e, rebuild = true, checkKeyNames = true, silent) => {
       buildObjPath._keys = Array(2).fill(0).map(_ => new Map);
       [uCfgContent._preset, uCfgContent._uSet].map((obj, i) => buildObjPath(obj, "", (key, _o, path) => buildObjPath._keys[i].set(key.replaceAll(" ", ""), [key, path])))
       const unrecognized = []
-      const matchAnyKey = (...keys) => keys.some(key => buildObjPath._keys[0].has(key))
-      buildObjPath._keys[1].forEach(([key, path], sKey) => !matchAnyKey(sKey, `${sKey}:demo<f>`, sKey.replace(/(?=<f>$)/, ":demo")) && unrecognized.push([key, path]))
+      const anyKeyMatch = (...keys) => keys.some(key => buildObjPath._keys[0].has(key))
+      buildObjPath._keys[1].forEach(([key, path], sKey) => !anyKeyMatch(sKey, `${sKey}:demo<f>`, sKey.replace(/(?=<f>$)/, ":demo")) && unrecognized.push([key, path]))
       if (unrecognized.length) throw Object.assign(Error(`Config saved, but the following keys are not recognized:<br><ul class=gap>${unrecognized.map(([key, path]) => ([key, path] = [key, path].map(escapeSpecialXMLChars), `<li><code>${key}</code>  (\`${path}\`)</li>`)).join("")}</ul>`), { ID: uCfgSave._errIDs[1] })
     }
     if (silent) return
@@ -577,14 +577,15 @@ uCfgContent.addEventListener("change", function () { this._pending = this.innerT
 function mergeCfg() {
   const uPutStr = $str._decodeFence(uCfgContent.innerText || localStorage.getItem("uCfg") || "")
   const cfg/* === uCfgContent._uSet */ = uPutStr ? mergeObjOptIn(eval(`(${uPutStr})`), uCfgContent._preset) : uCfgContent._preset
-  isObjReg(cfg.match.filter) && (cfg.match.filter = regAddFlagsMod(cfg.match.filter, "gsu"));
+  isObjReg(cfg.match.filter) && (cfg.match.filter = regAddFlagsMod(cfg.match.filter, "gsu"))
+  const fNCut = /\s*<f>$/;
   [
     ["LaTeX", "_macros", "macros  <raw>"],
     ["match", "_precall", "precall  <f>"],
     ["match", "_precall_output", "precall .output"],
     [, "_oneClickScript", "oneClickScript  <f>"],
     [, "_onload", "onload  <f>"]
-  ].forEach(([prop, _key, longestPossibleKeyName, finalCut = longestPossibleKeyName.endsWith("<f>") && /\s*<f>$/]) =>
+  ].forEach(([prop, _key, longestPossibleKeyName, finalCut = longestPossibleKeyName.endsWith("<f>") && fNCut]) =>
     Object.defineProperty(...prop ? [cfg[prop], _key] : [cfg, _key], { get() { return reduceSpacesToTryKeys(this, longestPossibleKeyName, finalCut) }, enumerable: false })
   )
   sortKeys(cfg)
