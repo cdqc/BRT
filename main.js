@@ -455,6 +455,7 @@ btn_dlSVG.addEventListener("click", () => {
   eqnContent = filter(!eqnContent._nonSemantic ? eqnContent : eqnContent[0].getElementsByTagName("*"), _ => !_.childElementCount).map(_ => _.textContent).join("")
   downloadText(`[${pageTitle}] eqn${uCfgContent._uSet.LaTeX.contentAsDownloadName ? ` ${eqnContent}` : ""}.svg`, cpSvgEl.outerHTML)
 })
+btn_cusBtn.addEventListener("click", () => tryEval(uCfgContent._uSet._oneClickScript))
 btn_rem.addEventListener("click", () => textarea.value && localStorage.setItem("btn_rem._remed", btn_rem._remed = textarea.value))
 btn_rec.addEventListener("click", () => (btn_rem._remed = btn_rem._remed || localStorage.getItem("btn_rem._remed")) && (textarea.value = btn_rem._remed))
 btn_recAS.addEventListener("click", () => textarea.value = localStorage.getItem("autosaved") || textarea.value)
@@ -498,6 +499,7 @@ uCfgContent._preset = {
                         `,
     "precall .output": false,
   },
+  oneClickScript: `tell(Y)`,
   "onload :demo<f>": `
                      [btn_lineWrap, btn_dockBox].forEach((v, i) => v.on = i)
                      `
@@ -513,7 +515,8 @@ uCfgSave._ = (e, rebuild = true, checkKeyNames = true, silent) => {
       buildObjPath._keys = Array(2).fill(0).map(_ => new Map);
       [uCfgContent._preset, uCfgContent._uSet].map((obj, i) => buildObjPath(obj, "", (key, _o, path) => buildObjPath._keys[i].set(key.replaceAll(" ", ""), [key, path])))
       const unrecognized = []
-      buildObjPath._keys[1].forEach(([key, path], sKey) => !buildObjPath._keys[0].has(sKey) && unrecognized.push([key, path]))
+      const matchAnyKey = (...keys) => keys.some(key => buildObjPath._keys[0].has(key))
+      buildObjPath._keys[1].forEach(([key, path], sKey) => !matchAnyKey(sKey, `${sKey}:demo<f>`, sKey.replace(/(?=<f>$)/, ":demo")) && unrecognized.push([key, path]))
       if (unrecognized.length) throw Object.assign(Error(`Config saved, but the following keys are not recognized:<br><ul class=gap>${unrecognized.map(([key, path]) => ([key, path] = [key, path].map(escapeSpecialXMLChars), `<li><code>${key}</code>  (\`${path}\`)</li>`)).join("")}</ul>`), { ID: uCfgSave._errIDs[1] })
     }
     if (silent) return
@@ -579,9 +582,10 @@ function mergeCfg() {
     ["LaTeX", "_macros", "macros  <raw>"],
     ["match", "_precall", "precall  <f>"],
     ["match", "_precall_output", "precall .output"],
+    [, "_oneClickScript", "oneClickScript  <f>"],
     [, "_onload", "onload  <f>"]
-  ].forEach(([prop, _key, longestPossibleKeyName]) =>
-    Object.defineProperty(...prop ? [cfg[prop], _key] : [cfg, _key], { get() { return reduceSpacesToTryKeys(this, longestPossibleKeyName) }, enumerable: false })
+  ].forEach(([prop, _key, longestPossibleKeyName, finalCut = longestPossibleKeyName.endsWith("<f>") && /\s*<f>$/]) =>
+    Object.defineProperty(...prop ? [cfg[prop], _key] : [cfg, _key], { get() { return reduceSpacesToTryKeys(this, longestPossibleKeyName, finalCut) }, enumerable: false })
   )
   sortKeys(cfg)
   mergeCfg._called ? setTimeout/*[^note]*/(uCfgContent._check, 0, { _uVars }) : (mergeCfg._called = true, setTimeout(() => ["_uCSS", "_uMatchPrep_btnSync"].forEach(_ => uCfgContent[_]())));
