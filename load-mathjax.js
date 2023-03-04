@@ -1,18 +1,22 @@
 "use strict"
 
-window.MathJax = {
-  loader: {
-    load: ["[tex]/mathtools", "[tex]/amscd", "[tex]/physics"],
-    versionWarnings: false
-  },
-  tex: {
-    packages: { "[+]": ["mathtools", "amscd", "physics"] },
-    tags: "ams",
-    inlineMath: [["$", "$"], ["\\(", "\\)"]]
-  },
-  svg: { fontCache: "global" },
-  options: { ignoreHtmlClass: "mathjax_ignore" }
-}
+window.MathJax = mergeObjOptIn(
+  {
+    loader: {
+      load: ["[tex]/mathtools", "[tex]/amscd", "[tex]/physics"],
+      versionWarnings: false
+    },
+    tex: {
+      packages: { "[+]": ["mathtools", "amscd", "physics"] },
+      tags: "ams",
+      inlineMath: [["$", "$"], ["\\(", "\\)"]]
+    },
+    svg: { fontCache: "global" },
+    options: { ignoreHtmlClass: "mathjax_ignore" }
+  }
+  ,
+  tryEval(localStorage.getItem("userCustomMathJax"))
+)
 
 loadScript("https://cdn.jsdelivr.net/npm/mathjax/es5/tex-svg-full.js").addEventListener("load", async () => {
   await MathJax.startup.promise
@@ -50,8 +54,8 @@ loadScript("https://cdn.jsdelivr.net/npm/mathjax/es5/tex-svg-full.js").addEventL
   ])
   MathJax.config._menuSettings = function ({ renderer = "SVG" } = {}) {
     const menuOptName = "MathJax-Menu-Settings"
-    const menuOpt = JSON.parse(localStorage.getItem(menuOptName)) || {}
-    localStorage.setItem(menuOptName, JSON.stringify(Object.assign(menuOpt, { renderer })))
+    const menuOpt = localStorage._getItem(menuOptName)
+    localStorage._setItem(menuOptName, Object.assign(menuOpt, { renderer }))
     MathJax.config._ ??= {}
     Object.entries(menuOpt).forEach(([k, v]) => MathJax.config._[k] = v)
   }

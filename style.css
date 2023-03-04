@@ -140,6 +140,10 @@ textarea.nowrap,
   overflow-x: scroll;
 }
 
+.mdc-text-field__resizer.nowrap {
+  padding: 0 0.5ch;
+}
+
 #txtd:not(.nowrap) [mk] {
   word-break: break-all;
 }
@@ -350,6 +354,15 @@ body:not(.side-by-side)>#btns {
 
 #mjx a:visited {
   color: var(--link-visited-color);
+}
+
+#mjx>mjx-container>svg>g:first-child>g:first-child>g:first-child[data-mml-node=xypic]>g {
+  fill: currentColor;
+  stroke: currentColor;
+}
+
+#mjx>mjx-container>svg>g:first-child>g:first-child>g:first-child[data-mml-node=xypic]>g[fill=none] {
+  fill: none;
 }
 
 #ctrl_pShow>[data-enum]::before {

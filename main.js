@@ -477,7 +477,7 @@ const [$cIdxS, $cIdxE, $cPre, $cStr, $cRHC] = (
   " rule hit count   ;"
 ).split(";").map((_, i) => `${1 + i}. current ${_}`)
 const $mathrm = _ => String.raw`\def${`\\${_}`}{\mathrm{${_}}}`
-const $jux/*"juxtaposition"*/ = "side-by-side", $jux$f = `${$jux}<f>`
+const $jux/*"juxtaposition"*/ = "side-by-side", $jux$f = `${$jux}<f>`, $uJax = "userCustomMathJax"
 uCfgContent._preset = {
   autoSave: { maxChars: 1000 ** 2 * 3 },
   CSS: {
@@ -488,7 +488,8 @@ uCfgContent._preset = {
     contentAsDownloadName: false,
     "demo<f>": "get [`demo<f>`]() { this[`macros :preset<raw>`] += `e i`.split(/\\s+/).map($mathrm).join(``) }",
     "macros :preset<raw>": String.raw`\def\d{\mathrm{d}}`,
-    renderAs: "SVG"
+    renderAs: "SVG",
+    [`${$uJax}<raw>`]: ""
   },
   match: {
     callbackVars: { [$cIdxS]: "$I", [$cIdxE]: "$i", [$cPre]: "$s", [$cStr]: "$S", [$cRHC]: "$n" },
@@ -513,7 +514,7 @@ uCfgSave._ = (e, rebuild = true, checkKeyNames = true, silent) => {
     //           a blank line appears before the fence code identifier of the template)
     if (checkKeyNames) {
       buildObjPath._keys = Array(2).fill(0).map(_ => new Map);
-      [uCfgContent._preset, uCfgContent._uSet].map((obj, i) => buildObjPath(obj, "", (key, _o, path) => buildObjPath._keys[i].set(key.replaceAll(" ", ""), [key, path])))
+      [uCfgContent._preset, uCfgContent._uSet].map((obj, i) => buildObjPath(obj, "", (key, _o, path) => buildObjPath._keys[i].set(trimS(key), [key, path])))
       const unrecognized = []
       const anyKeyMatch = (...keys) => keys.some(key => buildObjPath._keys[0].has(key))
       buildObjPath._keys[1].forEach(([key, path], sKey) => !anyKeyMatch(sKey, `${sKey}:demo<f>`, sKey.replace(/(?=<f>$)/, ":demo")) && unrecognized.push([key, path]))
@@ -534,6 +535,7 @@ uCfgContent._updXM = () => {
   textarea.update()
   MathJax.config._menuSettings({ renderer: uCfgContent._uSet.LaTeX.renderAs })
   if (/SVG/i.test(uCfgContent._uSet.LaTeX.renderAs)) mjx._svgGCD = document.querySelector("#MJX-SVG-global-cache>defs")
+  localStorage.setItem($uJax, uCfgContent._uSet.LaTeX._uJax)
 }
 uCfgContent._uMatchPrep = ({ _uVars: old_uVars }) => {
   const invalid = [];
@@ -578,15 +580,16 @@ function mergeCfg() {
   const uPutStr = $str._decodeFence(uCfgContent.innerText || localStorage.getItem("uCfg") || "")
   const cfg/* === uCfgContent._uSet */ = uPutStr ? mergeObjOptIn(eval(`(${uPutStr})`), uCfgContent._preset) : uCfgContent._preset
   isObjReg(cfg.match.filter) && (cfg.match.filter = regAddFlagsMod(cfg.match.filter, "gsu"))
-  const fNCut = /\s*<f>$/;
+  const fNCut = /\s*<(f|raw)>$/;
   [
     ["LaTeX", "_macros", "macros  <raw>"],
+    ["LaTeX", "_uJax", `${$uJax}  <raw>`],
     ["match", "_precall", "precall  <f>"],
     ["match", "_precall_output", "precall .output"],
     [, "_oneClickScript", "oneClickScript  <f>"],
     [, "_onload", "onload  <f>"]
-  ].forEach(([prop, _key, longestPossibleKeyName, finalCut = longestPossibleKeyName.endsWith("<f>") && fNCut]) =>
-    Object.defineProperty(...prop ? [cfg[prop], _key] : [cfg, _key], { get() { return reduceSpacesToTryKeys(this, longestPossibleKeyName, finalCut) }, enumerable: false })
+  ].forEach(([prop, _key, longestPossibleKeyName, finalCut = longestPossibleKeyName.endsWith(">") && fNCut]) =>
+    Object.defineProperty(...prop ? [cfg[prop], _key] : [cfg, _key], { get() { return reduceSpacesToTryKeys(this, longestPossibleKeyName, finalCut) }, enumerable: false, configurable: true })
   )
   sortKeys(cfg)
   mergeCfg._called ? setTimeout/*[^note]*/(uCfgContent._check, 0, { _uVars }) : (mergeCfg._called = true, setTimeout(() => ["_uCSS", "_uMatchPrep_btnSync"].forEach(_ => uCfgContent[_]())));
@@ -725,7 +728,7 @@ function mergeRules() {
   })
   tell(`Merged ${count.entries} rules into ${count.groups} groups${changeless ? `,<br>${"&nbsp;".repeat(3)}and ${changeless} changeless.` : ""}`, tell.timeout_mid)
 }
-btn_lineWrap._toggle = function () { txta.forEach(_ => _.classList[!this._on ? "add" : "remove"]("nowrap")) }
+btn_lineWrap._toggle = function () { const act = !this._on ? "add" : "remove", toggle = _ => _.classList[act]("nowrap"); txta.forEach(toggle); toggle(textarea.parentNode) }
 document.querySelectorAll("[role=tooltip]").forEach(tip => tip.querySelector("[data-text]").setAttribute("data-state", document.querySelector(`[data-tooltip-id=${tip.id}]`).getAttribute("data-state")))
 document.querySelectorAll("[data-tooltip-id]").forEach(el => {
   el._on = el.dataset.state === "on"

@@ -88,13 +88,25 @@ RegExp.prototype.toString = function () { return `${this._comment_ || ""}/${this
 function regAddFlagsMod(reg, add) { return RegExp(reg, regAddFlags(reg, add)) }
 function regAddFlags(origFlags, add = "") { if (isObjReg(origFlags)) origFlags = origFlags.flags; return [...new Set([...`${origFlags}${add}`])].join("") }
 Object.assign(RegExp.prototype, {
-  _CGIA /*capturing group in assertions (approximate)*/: RegExp(/(?<!\\) \( (?=\?(?!:))/.source.replaceAll(" ", "")),
+  _CGIA /*capturing group in assertions (approximate)*/: RegExp(trimS(/(?<!\\) \( (?=\?(?!:))/.source)),
   _inclCGIA() { return this._CGIA.test(this.source) }
 })
 
 
 
-function mergeObjOptIn(toMe, give) { toMe && isObj(give) && Object.entries(give).forEach(([k, v]) => / :[\w:]+$/i.test(k) || !toMe.hasOwnProperty(k) ? toMe[k] = v : isObj(v) && mergeObjOptIn(toMe[k], v)); return toMe }
+function mergeObjOptIn(toMe, give) {
+  let myKeys
+  if (toMe && isObj(give)) {
+    myKeys = new Set(Object.keys(toMe).map(trimS))
+    Object.entries(give).forEach(([k, v]) =>
+      Array.isArray(v)
+        ? toMe[k] = [...new Set([...toMe[k] || [], ...v])]
+        : / :[\w:]+>?$/i.test(k) || !(toMe.hasOwnProperty(k) || myKeys.has(trimS(k)))
+          ? toMe[k] = v
+          : isObj(v) && mergeObjOptIn(toMe[k], v))
+  }
+  return toMe
+}
 function sortKeys(obj) { let v; isObj(obj) && Object.keys(obj).sort(localeCompare).forEach(k => { v = obj[k]; delete obj[k]; obj[k] = v; sortKeys(v) }) }
 function localeCompare(a, b) { if (!isStr(a)) [a, b] = [a, b].map(String); return a.localeCompare(b, undefined, { numeric: true/*No need to actively check `allStartWithNum(a, b)` at all*/ }) }
 function reduceSpacesToTryKeys(obj, lPKN/*"longest possible key name"*/, finalCut = /\$.*/) {
@@ -111,6 +123,7 @@ function stripBsl(str) { return dblBsl(str, { revert: true }) }
 function escQq(str) { return str.replaceAll(`"`, `\\"`) }
 function dB_eQ(str) { return escQq(dblBsl(str)) }
 function ensureStr(str) { return isStr(str) || "" }
+function trimS(str) { return str.replaceAll(" ", "") }
 
 function tryEval(str) { try { return eval(str) } catch (err) { return err.message === "nothing to repeat" ? Symbol.for("MalformedRegExp") : false } }
 function fnOrStringify(fn) { const fnS = tryEval(fn); return typeof fnS === "function" ? fnS : `"${ensureStr(fn) && escQq(fn)}"` }
@@ -145,6 +158,11 @@ function convertInitFnToReinit(fn) { return new Function("return " + fn.toString
 
 function loadScript(src = "", { async = true } = {}) { return document.head.appendChild(Object.assign(document.createElement("script"), { src, async })) }
 function downloadText(filename, text) { Object.assign(document.createElement("a"), { href: `data:text;charset=utf-8,${encodeURIComponent(text)}`, download: filename }).click() }
+
+Object.defineProperties(Object.getPrototypeOf(localStorage), {
+  _getItem: { value(key) { return JSON.parse(this.getItem(key)) || {} } },
+  _setItem: { value(key, val) { this.setItem(key, JSON.stringify(val)) } }
+})
 
 
 
