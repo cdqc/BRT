@@ -9,6 +9,9 @@ function slice() { return arrPFC("slice", ...arguments) }
 
 function noop(_) { return _ }
 function noopThis() { return this }
+function ensureArr(_) { return Array.isArray(_) ? _ : [_] }
+function slicePart(arr, n) { return slice(arr, ...n > 0 ? [0, n] : [n]) }
+function findResult(arr, fn) { let res; arr.find(a => res = fn(a)); return res }
 function rearrange(arr, from, splLen, to/*after!*/) { arr.splice((from < to ? to - splLen : to) + 1, 0, ...arr.splice(from, splLen)); return arr }
 function permuteContly(arr, pMap = [[1, 3], [2, 4]]) {
   if (pMap[0][0] > pMap[1][0]) pMap.sort()
@@ -80,7 +83,7 @@ function $str(str) {
     ?.replace(/"@re: (.+)"/g, (_, $1) => `${stripBsl($1)}`)
     .replace(/(?<=<(raw|f)>": )"(.+)"/g, (_, $1, $2) => `${$1 === "f" ? "``" : "String.raw"}\`${stripBsl($2)}\`${$1 === "f" ? "``" : ""}`.replaceAll(/\\[n"]/g, evalToStr))
 }
-$str._decodeFence = function (str) { return str.replace(/(<f>": )```(.+?)```/gs, (_, $1, $2) => `${$1}"${dblBsl($2).replaceAll(/[\n"]/g, _ => reReprJSONL[_])}"`) }
+$str._decodeFence = function (str) { return str.replace(/(<f>": )```(.*?)```/gs, (_, $1, $2) => `${$1}"${dblBsl($2).replaceAll(/[\n"]/g, _ => reReprJSONL[_])}"`) }
 const reReprJSONL = { "\n": "\\n", "\"": `\\"` }
 RegExp.prototype.toJSON = function () { return `@re: ${this}` }
 RegExp.prototype.toString = function () { return `${this._comment_ || ""}/${this.source}/${this.flags}` }
@@ -94,16 +97,23 @@ Object.assign(RegExp.prototype, {
 
 
 
-function mergeObjOptIn(toMe, give) {
-  let myKeys
+function mergeObj() { return mergeObjOptIn(...slicePart(arguments, 2), { arrayAppend: true }) }
+function mergeObjOptIn(toMe, give, { key: { ignore = null, trimSpaces = false, equivalentPart = null } = {}, arrayAppend = false } = {}) {
   if (toMe && isObj(give)) {
-    myKeys = new Set(Object.keys(toMe).map(trimS))
-    Object.entries(give).forEach(([k, v]) =>
-      Array.isArray(v)
-        ? toMe[k] = [...new Set([...toMe[k] || [], ...v])]
-        : / :[\w:]+>?$/i.test(k) || !(toMe.hasOwnProperty(k) || myKeys.has(trimS(k)))
+    const $keys = () => $keys._ ??= Object.keys(toMe)
+    const myKeys = trimSpaces ? new Set($keys().map(trimS)) : null;
+    [ignore, equivalentPart] = [ignore, equivalentPart].map(_ => isObjReg(_) || null)
+    const eqRplc = equivalentPart && (key => key.replace(equivalentPart, ""))
+    const eqKeys = equivalentPart && Object.fromEntries($keys().map(_ => [eqRplc(_), _]))
+
+    Object.entries(give).forEach(([k, v]) => {
+      eqKeys && (k = eqKeys[eqRplc(k)] ?? k)
+      arrayAppend && (Array.isArray(v) || Array.isArray(toMe[k]))
+        ? toMe[k] = Array.from(new Set(ensureArr(toMe[k]).concat(v)))
+        : ignore?.test(k) || !(toMe.hasOwnProperty(k) || myKeys?.has(trimS(k)))
           ? toMe[k] = v
-          : isObj(v) && mergeObjOptIn(toMe[k], v))
+          : isObj(v) && mergeObjOptIn(toMe[k], v, ...slicePart(arguments, -1))
+    })
   }
   return toMe
 }
@@ -122,8 +132,8 @@ function quadBsl(str) { return dblBsl(dblBsl(str)) }
 function stripBsl(str) { return dblBsl(str, { revert: true }) }
 function escQq(str) { return str.replaceAll(`"`, `\\"`) }
 function dB_eQ(str) { return escQq(dblBsl(str)) }
-function ensureStr(str) { return isStr(str) || "" }
-function trimS(str) { return str.replaceAll(" ", "") }
+function ensureStr(str, _throw) { if (_throw && !isStr(str)) throw TypeError(`str is ${str}`); return isStr(str) ? str : "" }
+function trimS(str) { return ensureStr(str, true).replaceAll(" ", "") }
 
 function tryEval(str) { try { return eval(str) } catch (err) { return err.message === "nothing to repeat" ? Symbol.for("MalformedRegExp") : false } }
 function fnOrStringify(fn) { const fnS = tryEval(fn); return typeof fnS === "function" ? fnS : `"${ensureStr(fn) && escQq(fn)}"` }

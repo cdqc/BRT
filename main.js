@@ -22,6 +22,7 @@ const {
   tooltip: { MDCTooltip },
   dialog: { MDCDialog },
   slider: { MDCSlider },
+  switchControl: { MDCSwitch },
 }
   = mdc;
 [
@@ -36,6 +37,7 @@ const {
   [".mdc-tooltip", MDCTooltip],
   [".mdc-dialog", MDCDialog],
   [".mdc-slider", MDCSlider],
+  [".mdc-switch", MDCSwitch],
 ]
   .forEach(([_class, Class]) => {
     const __class = `${_class.replace(/^\W+/, "").replace(/\W+/g, "_")}__list`
@@ -69,7 +71,7 @@ mainBlocks.sort((a, b) => a.compareDocumentPosition(b) & Node.DOCUMENT_POSITION_
 const oriOrd = mapToID(mainBlocks, "#").join(" ")
 mainBlocks._ids = new Set(oriOrd.split(" "))
 mainBlocks._report = () => uCfgContent._uSet.CSS.layout.order = mainBlocks.sort((a, b) => a.style.order - b.style.order).map(el => `#${el.id}`).join(" ")
-const uOptJux = _ => uOptJux._ = (_ = tryEval(uCfgContent._uSet.CSS.layout[$jux$f])) === "auto" ? isLandscape() : _
+const uOptJux = _ => uOptJux._ = (_ = tryEval(uCfgContent._uSet.CSS.layout[$jux$f])) === "auto" ? isLandscape() : !!_
 Object.defineProperties(uOptJux, {
   "__": { get: () => uOptJux._ ?? uOptJux() },
   "_andL": { get: () => uOptJux.__ && isLandscape() }
@@ -517,13 +519,13 @@ uCfgSave._ = (e, rebuild = true, checkKeyNames = true, silent) => {
       [uCfgContent._preset, uCfgContent._uSet].map((obj, i) => buildObjPath(obj, "", (key, _o, path) => buildObjPath._keys[i].set(trimS(key), [key, path])))
       const unrecognized = []
       const anyKeyMatch = (...keys) => keys.some(key => buildObjPath._keys[0].has(key))
-      buildObjPath._keys[1].forEach(([key, path], sKey) => !anyKeyMatch(sKey, `${sKey}:demo<f>`, sKey.replace(/(?=<f>$)/, ":demo")) && unrecognized.push([key, path]))
+      buildObjPath._keys[1].forEach(([key, path], sKey) => !anyKeyMatch(sKey, sKey.replace(/<f>$/, "<raw>"), `${sKey}:demo<f>`, sKey.replace(/(?=<f>$)/, ":demo")) && unrecognized.push([key, path]))
       if (unrecognized.length) throw Object.assign(Error(`Config saved, but the following keys are not recognized:<br><ul class=gap>${unrecognized.map(([key, path]) => ([key, path] = [key, path].map(escapeSpecialXMLChars), `<li><code>${key}</code>  (\`${path}\`)</li>`)).join("")}</ul>`), { ID: uCfgSave._errIDs[1] })
     }
     if (silent) return
     if (uCfgSave._errIDs.includes(tell._lastId)) mdc_snackbar.close()
   }
-  catch (err) { e && e.stopPropagation(); tell(err.ID ? err.message : err, { errID: err.ID || uCfgSave._errIDs[0] }) }
+  catch (err) { err instanceof TypeError && console.log(err); e && e.stopPropagation(); tell(err.ID ? err.message : err, { errID: err.ID || uCfgSave._errIDs[0] }) }
 }
 uCfgSave.__ = uCfgSave._.bind(null, ...Array(3).fill(false), true)
 uCfgSave.addEventListener("click", e => { delete uCfgContent._retract; uCfgSave._(e) })
@@ -578,25 +580,28 @@ uCfgContent._rec = function (key) { if (!this[key]) return; this.innerText = thi
 uCfgContent.addEventListener("change", function () { this._pending = this.innerText })
 function mergeCfg() {
   const uPutStr = $str._decodeFence(uCfgContent.innerText || localStorage.getItem("uCfg") || "")
-  const cfg/* === uCfgContent._uSet */ = uPutStr ? mergeObjOptIn(eval(`(${uPutStr})`), uCfgContent._preset) : uCfgContent._preset
+  const cfg/* === uCfgContent._uSet */ = uPutStr ? mergeCfgObj(eval(`(${uPutStr})`), uCfgContent._preset) : uCfgContent._preset
   isObjReg(cfg.match.filter) && (cfg.match.filter = regAddFlagsMod(cfg.match.filter, "gsu"))
   const fNCut = /\s*<(f|raw)>$/;
   [
     ["LaTeX", "_macros", "macros  <raw>"],
-    ["LaTeX", "_uJax", `${$uJax}  <raw>`],
+    ["LaTeX", "_uJax", [`${$uJax}  <raw>`, `${$uJax}  <f>`]],
     ["match", "_precall", "precall  <f>"],
     ["match", "_precall_output", "precall .output"],
     [, "_oneClickScript", "oneClickScript  <f>"],
     [, "_onload", "onload  <f>"]
-  ].forEach(([prop, _key, longestPossibleKeyName, finalCut = longestPossibleKeyName.endsWith(">") && fNCut]) =>
-    Object.defineProperty(...prop ? [cfg[prop], _key] : [cfg, _key], { get() { return reduceSpacesToTryKeys(this, longestPossibleKeyName, finalCut) }, enumerable: false, configurable: true })
-  )
+  ].forEach(([prop, _key, longestPossibleKeyName]) => {
+    longestPossibleKeyName = ensureArr(longestPossibleKeyName)
+    const finalCut = longestPossibleKeyName[0].endsWith(">") && fNCut
+    Object.defineProperty(...prop ? [cfg[prop], _key] : [cfg, _key], { get() { return findResult(longestPossibleKeyName, _ => reduceSpacesToTryKeys(this, _, finalCut)) }, enumerable: false, configurable: true })
+  })
   sortKeys(cfg)
   mergeCfg._called ? setTimeout/*[^note]*/(uCfgContent._check, 0, { _uVars }) : (mergeCfg._called = true, setTimeout(() => ["_uCSS", "_uMatchPrep_btnSync"].forEach(_ => uCfgContent[_]())));
   // [^note]: Must, otherwise the *old* config will be misapplied
   ["CSS.layout", "match"].forEach(prop => delegate(...objPathToLastProp(cfg, prop), (_tgt, key) => patchySaveKeys.has(key) && uCfgSave.__()))
   return cfg
 }
+function mergeCfgObj(a, b) { return mergeObjOptIn(a, b, { key: { trimSpaces: true, ignore: / :[\w:]+>?$/i, equivalentPart: /<(f|raw)>$/ }, arrayAppend: false }) }
 const patchySaveKeys = new Set([$jux$f, "filterIsOn"])
 uCfgDefault.addEventListener("click", () => {
   // e.stopPropagation() // No need if its html attribute `data-mdc-dialog-action` is not appended

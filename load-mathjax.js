@@ -1,6 +1,6 @@
 "use strict"
 
-window.MathJax = mergeObjOptIn(
+window.MathJax = mergeObj(
   {
     loader: {
       load: ["[tex]/mathtools", "[tex]/amscd", "[tex]/physics"],
@@ -15,7 +15,7 @@ window.MathJax = mergeObjOptIn(
     options: { ignoreHtmlClass: "mathjax_ignore" }
   }
   ,
-  tryEval(localStorage.getItem("userCustomMathJax"))
+  tryEval(localStorage.getItem("userCustomMathJax")?.replace(/;+\s*$/, ""))
 )
 
 loadScript("https://cdn.jsdelivr.net/npm/mathjax/es5/tex-svg-full.js").addEventListener("load", async () => {
@@ -31,6 +31,7 @@ loadScript("https://cdn.jsdelivr.net/npm/mathjax/es5/tex-svg-full.js").addEventL
     mjx.innerHTML = textarea.__value
       .replace(/<(?!\s)(?=[^>]+\$)/g, "$& ")
       .replace(/(\n{2,})|  $\n(?!\n)/gm, (_, $1) => "<br>".repeat($1 ? $1.length : 1))
+      .replace(/(?<=^# .+\n(?!<br>))/gm, "<br>")
     textarea.__value = ""
 
     if (textareaHandler._executing) return
